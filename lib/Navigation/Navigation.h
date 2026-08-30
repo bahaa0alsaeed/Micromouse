@@ -43,14 +43,16 @@ public:
         const NavigationConfig& config
     );
 
+    virtual ~Navigation() = default;
+
     void update(float deltaTime);
 
-    void moveForward(float speed, float distance = -1); // Edit it on UML
+    virtual void moveForward(float distance, float speed = -1); // Edit it on UML
 
-    void turnLeft();
+    virtual void turnLeft();
     void turnLeft45();
 
-    void turnRight();
+    virtual void turnRight();
     void turnRight45();
 
     void turnBack();

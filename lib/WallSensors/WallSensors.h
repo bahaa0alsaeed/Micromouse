@@ -30,9 +30,11 @@ class WallSensors
 
 public:
     explicit WallSensors(const WallSensorConfig& config);
+    virtual ~WallSensors() = default;
+
     WallReadings getReadings();
-    bool wallFront();
-    bool wallRight();
-    bool wallLeft();
+    virtual bool wallFront();
+    virtual bool wallRight();
+    virtual bool wallLeft();
 };
 

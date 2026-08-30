@@ -9,10 +9,18 @@ enum Direction
     WEST  = 8
 };
 
+inline constexpr Direction DIRECTIONS[] =
+{
+    NORTH,
+    EAST,
+    SOUTH,
+    WEST
+};
+
 struct CellPosition
 {
-    unsigned int x;
-    unsigned int y;
+    int x;
+    int y;
 };
 
 struct Cell
@@ -31,6 +39,18 @@ class Maze
 
 public:
     Maze();
+
+    [[nodiscard]]
+    Direction opposite(Direction dir);
+
+    [[nodiscard]]
+    Direction rightOf(Direction dir);
+
+    [[nodiscard]]
+    Direction leftOf(Direction dir);
+
+    [[nodiscard]]
+    CellPosition nextPosition(const CellPosition& pos, const Direction& dir);
 
     [[nodiscard]] bool isValid(const CellPosition& pos) const;
 
