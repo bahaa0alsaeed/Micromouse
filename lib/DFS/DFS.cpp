@@ -1,6 +1,7 @@
 #include "DFS.h"
+#include "RobotState.h"
 
-DFS::DFS(Maze& maze, Navigation& navigation, WallSensors& wallSensors)
+DFS::DFS(Maze& maze, INavigation& navigation, IWallSensors& wallSensors)
     : maze(maze), navigation(navigation), wallSensors(wallSensors)
 {
 }
@@ -13,9 +14,9 @@ void DFS::updateWalls()
 
 
     Direction frontDir = robotDir;
-    Direction rightDir = maze.rightOf(robotDir);
-    Direction leftDir  = maze.leftOf(robotDir);
-    Direction backDir  = maze.opposite(robotDir);
+    Direction rightDir = rightOf(robotDir);
+    Direction leftDir  = leftOf(robotDir);
+    Direction backDir  = opposite(robotDir);
 
     if (front)
         maze.setWall(robotPos, frontDir);
@@ -44,21 +45,21 @@ void DFS::turnTO(Direction dir)
     if (robotDir == dir)
         return;
 
-    if (maze.rightOf(robotDir) == dir)
+    if (rightOf(robotDir) == dir)
     {
         navigation.turnRight();
         robotDir = dir;
         return;
     }
 
-    if (maze.leftOf(robotDir) == dir)
+    if (leftOf(robotDir) == dir)
     {
         navigation.turnLeft();
         robotDir = dir;
         return;
     }
 
-    if (maze.opposite(robotDir) == dir)
+    if (opposite(robotDir) == dir)
     {
         navigation.turnLeft();
         navigation.turnLeft();
@@ -80,7 +81,7 @@ void DFS::explore()
         if (!maze.isKnown(robotPos, dir)) continue;
         if (maze.hasWall(robotPos, dir)) continue;
 
-        newPos = maze.nextPosition(robotPos, dir);
+        newPos = nextPosition(robotPos, dir);
         if (!maze.isValid(newPos)) continue;
         if (maze.isVisited(newPos)) continue;
 
@@ -90,12 +91,12 @@ void DFS::explore()
 
         explore();
 
-        Direction backDir = maze.opposite(dir);
+        Direction backDir = opposite(dir);
         turnTO(backDir);
-        robotPos = maze.nextPosition(robotPos, robotDir);
+        robotPos = nextPosition(robotPos, robotDir);
         navigation.moveForward(1);
 
         updateWalls();
     }
-
 }
+

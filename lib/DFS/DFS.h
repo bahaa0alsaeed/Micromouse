@@ -1,21 +1,21 @@
 #pragma once
 #include "Maze.h"
-#include "Navigation.h"
-#include "WallSensors.h"
+#include "INavigation.h"
+#include "IWallSensors.h"
+#include "Directions.h"
 
 class DFS
 {
     Maze& maze;
-    Navigation& navigation;
-    WallSensors& wallSensors;
+    INavigation& navigation;
+    IWallSensors& wallSensors;
 
-    CellPosition robotPos = {0,0};
-    Direction robotDir = NORTH;
 
     void updateWalls();
     void turnTO(Direction dir);
 
 public:
-    DFS(Maze& maze, Navigation& navigation, WallSensors& wallSensors);
+    DFS(Maze& maze, INavigation& navigation, IWallSensors& wallSensors);
     void explore();
+
 };

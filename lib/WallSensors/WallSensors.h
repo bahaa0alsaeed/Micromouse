@@ -1,5 +1,6 @@
 #pragma once
 #include "VL53L0X.h"
+#include "../../include/IWallSensors.h"
 
 struct WallSensorConfig
 {
@@ -20,7 +21,7 @@ struct WallReadings
     float right = 0.0;
 };
 
-class WallSensors
+class WallSensors : public IWallSensors
 {
     VL53L0X frontSensor;
     VL53L0X leftSensor;
@@ -30,11 +31,10 @@ class WallSensors
 
 public:
     explicit WallSensors(const WallSensorConfig& config);
-    virtual ~WallSensors() = default;
 
     WallReadings getReadings();
-    virtual bool wallFront();
-    virtual bool wallRight();
-    virtual bool wallLeft();
+    bool wallFront() override;
+    bool wallRight() override;
+    bool wallLeft() override;
 };
 

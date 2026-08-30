@@ -1,5 +1,6 @@
 #include "unity.h"
 #include "Maze.h"
+#include "Directions.h"
 
 // ---------------------------------------------------------
 // isValid()

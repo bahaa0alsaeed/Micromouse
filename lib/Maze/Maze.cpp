@@ -5,64 +5,6 @@ Maze::Maze()
  reset();
 }
 
-Direction Maze::opposite(const Direction dir)
-{
-    switch (dir)
-    {
-    case NORTH: return SOUTH;
-    case EAST:  return WEST;
-    case SOUTH: return NORTH;
-    case WEST:  return EAST;
-    }
-
-    return NORTH;
-}
-
-Direction Maze::rightOf(const Direction dir)
-{
-    switch (dir)
-    {
-    case NORTH: return EAST;
-    case EAST:  return SOUTH;
-    case SOUTH: return WEST;
-    case WEST:  return NORTH;
-    }
-
-    return NORTH;
-}
-
-Direction Maze::leftOf(const Direction dir)
-{
-    switch (dir)
-    {
-    case NORTH: return WEST;
-    case WEST:  return SOUTH;
-    case SOUTH: return EAST;
-    case EAST:  return NORTH;
-    }
-
-    return NORTH;
-}
-
-CellPosition Maze::nextPosition(const CellPosition& pos, const Direction& dir)
-{
-    switch (dir)
-    {
-    case NORTH:
-        return {pos.x, pos.y + 1};
-
-    case EAST:
-        return {pos.x + 1, pos.y};
-
-    case SOUTH:
-        return {pos.x, pos.y - 1};
-
-    case WEST:
-        return {pos.x - 1, pos.y};
-    }
-
-    return pos;
-}
 
 bool Maze::isValid(const CellPosition& pos) const
 {
