@@ -1,19 +1,6 @@
 #pragma once
 #include <cstdint>
-
-enum Direction
-{
-    NORTH = 1,
-    EAST  = 2,
-    SOUTH = 4,
-    WEST  = 8
-};
-
-struct CellPosition
-{
-    unsigned int x;
-    unsigned int y;
-};
+#include "Directions.h"
 
 struct Cell
 {

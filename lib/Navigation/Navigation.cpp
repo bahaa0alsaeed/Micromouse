@@ -25,7 +25,7 @@ void Navigation::update(float deltaTime)
 {
 }
 
-void Navigation::moveForward(float speed, float distance)
+void Navigation::moveForward(float distance, float speed)
 {
 }
 

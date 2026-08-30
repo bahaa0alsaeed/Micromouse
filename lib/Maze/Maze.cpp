@@ -5,9 +5,10 @@ Maze::Maze()
  reset();
 }
 
+
 bool Maze::isValid(const CellPosition& pos) const
 {
-    return (pos.x < WIDTH && pos.y < HEIGHT);
+    return (pos.x >= 0 && pos.x < WIDTH && pos.y >= 0 && pos.y < HEIGHT);
 }
 
 bool Maze::hasWall(const CellPosition& pos, const Direction dir) const

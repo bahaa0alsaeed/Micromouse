@@ -3,6 +3,7 @@
 #include "Encoder.h"
 #include "WallSensors.h"
 #include "PID.h"
+#include "INavigation.h"
 
 struct NavigationConfig
 {
@@ -10,7 +11,7 @@ struct NavigationConfig
     float cellSize;
 };
 
-class Navigation
+class Navigation : public INavigation
 {
     DRV8833& driver;
     Encoder& leftEncoder;
@@ -45,12 +46,12 @@ public:
 
     void update(float deltaTime);
 
-    void moveForward(float speed, float distance = -1); // Edit it on UML
+    void moveForward(float distance, float speed = -1) override; // Edit it on UML
 
-    void turnLeft();
+    void turnLeft() override;
     void turnLeft45();
 
-    void turnRight();
+    void turnRight() override;
     void turnRight45();
 
     void turnBack();
