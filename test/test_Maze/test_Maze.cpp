@@ -33,16 +33,9 @@ void test_reset_creates_outer_walls(void)
 {
     Maze maze;
 
-    // Left boundary
     TEST_ASSERT_TRUE(maze.hasWall({0, 5}, WEST));
-
-    // Right boundary
     TEST_ASSERT_TRUE(maze.hasWall({15, 5}, EAST));
-
-    // Bottom boundary
     TEST_ASSERT_TRUE(maze.hasWall({5, 0}, SOUTH));
-
-    // Top boundary
     TEST_ASSERT_TRUE(maze.hasWall({5, 15}, NORTH));
 }
 
@@ -129,6 +122,7 @@ void test_setWall_boundary_does_not_modify_outside(void)
     TEST_ASSERT_TRUE(maze.hasWall({0, 0}, SOUTH));
     TEST_ASSERT_TRUE(maze.hasWall({15, 15}, NORTH));
 }
+
 
 // ---------------------------------------------------------
 // setOpen()
@@ -285,7 +279,6 @@ void test_invalid_position_getCost_returns_zero(void)
 void test_reset_clears_maze_state(void)
 {
     Maze maze;
-
     CellPosition pos{5, 5};
 
     maze.setWall(pos, NORTH);
@@ -295,7 +288,6 @@ void test_reset_clears_maze_state(void)
 
     maze.reset();
 
-    // Internal state should be cleared
     TEST_ASSERT_FALSE(maze.hasWall(pos, NORTH));
     TEST_ASSERT_FALSE(maze.isKnown(pos, NORTH));
     TEST_ASSERT_FALSE(maze.isKnown(pos, EAST));
