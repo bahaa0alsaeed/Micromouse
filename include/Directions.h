@@ -20,6 +20,13 @@ struct CellPosition
 {
     int x = 0;
     int y = 0;
+
+    bool operator==(const CellPosition& other) const {
+        return (x == other.x && y == other.y);
+    }
+    bool operator!=(const CellPosition& other) const {
+        return (x != other.x || y != other.y);
+    }
 };
 
 

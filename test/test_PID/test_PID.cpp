@@ -23,17 +23,9 @@ void test_constructor()
 
     PID pid(config);
 
-    float output = pid.compute(
-        10.0f,
-        10.0f,
-        0.1f
-    );
+    float output = pid.compute(10.0f, 10.0f, 0.1f);
 
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        0.0f,
-        output
-    );
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, output);
 }
 
 
@@ -54,17 +46,9 @@ void test_proportional()
 
     PID pid(config);
 
-    float output = pid.compute(
-        10.0f,
-        8.0f,
-        0.1f
-    );
+    float output = pid.compute(10.0f, 8.0f, 0.1f);
 
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        4.0f,
-        output
-    );
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 4.0f, output);
 }
 
 
@@ -85,17 +69,9 @@ void test_negative_error()
 
     PID pid(config);
 
-    float output = pid.compute(
-        8.0f,
-        10.0f,
-        0.1f
-    );
+    float output = pid.compute(8.0f, 10.0f, 0.1f);
 
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        -4.0f,
-        output
-    );
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, -4.0f, output);
 }
 
 
@@ -116,17 +92,9 @@ void test_zero_error()
 
     PID pid(config);
 
-    float output = pid.compute(
-        10.0f,
-        10.0f,
-        0.1f
-    );
+    float output = pid.compute(10.0f, 10.0f, 0.1f);
 
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        0.0f,
-        output
-    );
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, output);
 }
 
 
@@ -150,29 +118,11 @@ void test_integral_accumulation()
 
     PID pid(config);
 
-    float output1 = pid.compute(
-        10.0f,
-        8.0f,
-        1.0f
-    );
+    float output1 = pid.compute(10.0f, 8.0f, 1.0f);
+    float output2 = pid.compute(10.0f, 8.0f, 1.0f);
 
-    float output2 = pid.compute(
-        10.0f,
-        8.0f,
-        1.0f
-    );
-
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        2.0f,
-        output1
-    );
-
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        4.0f,
-        output2
-    );
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 2.0f, output1);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 4.0f, output2);
 }
 
 
@@ -199,19 +149,9 @@ void test_integral_limit()
     float output = 0.0f;
 
     for (int i = 0; i < 20; ++i)
-    {
-        output = pid.compute(
-            10.0f,
-            0.0f,
-            1.0f
-        );
-    }
+        output = pid.compute(10.0f, 0.0f, 1.0f);
 
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        5.0f,
-        output
-    );
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 5.0f, output);
 }
 
 
@@ -232,17 +172,9 @@ void test_output_upper_limit()
 
     PID pid(config);
 
-    float output = pid.compute(
-        10.0f,
-        0.0f,
-        0.1f
-    );
+    float output = pid.compute(10.0f, 0.0f, 0.1f);
 
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        10.0f,
-        output
-    );
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 10.0f, output);
 }
 
 
@@ -263,17 +195,9 @@ void test_output_lower_limit()
 
     PID pid(config);
 
-    float output = pid.compute(
-        -10.0f,
-        0.0f,
-        0.1f
-    );
+    float output = pid.compute(-10.0f, 0.0f, 0.1f);
 
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        -10.0f,
-        output
-    );
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, -10.0f, output);
 }
 
 
@@ -294,17 +218,9 @@ void test_output_inside_limits()
 
     PID pid(config);
 
-    float output = pid.compute(
-        2.0f,
-        0.0f,
-        0.1f
-    );
+    float output = pid.compute(2.0f, 0.0f, 0.1f);
 
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        4.0f,
-        output
-    );
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 4.0f, output);
 }
 
 
@@ -328,31 +244,14 @@ void test_reset_integral()
 
     PID pid(config);
 
-    pid.compute(
-        10.0f,
-        8.0f,
-        1.0f
-    );
-
-    pid.compute(
-        10.0f,
-        8.0f,
-        1.0f
-    );
+    pid.compute(10.0f, 8.0f, 1.0f);
+    pid.compute(10.0f, 8.0f, 1.0f);
 
     pid.reset();
 
-    float output = pid.compute(
-        10.0f,
-        8.0f,
-        1.0f
-    );
+    float output = pid.compute(10.0f, 8.0f, 1.0f);
 
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        2.0f,
-        output
-    );
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 2.0f, output);
 }
 
 
@@ -367,7 +266,6 @@ void test_reset_clears_derivative_state()
     config.kp = 0.0f;
     config.ki = 0.0f;
     config.kd = 1.0f;
-
     config.alpha = 0.7f;
 
     config.outputMin = -100.0f;
@@ -375,31 +273,14 @@ void test_reset_clears_derivative_state()
 
     PID pid(config);
 
-    pid.compute(
-        0.0f,
-        0.0f,
-        1.0f
-    );
-
-    pid.compute(
-        10.0f,
-        0.0f,
-        1.0f
-    );
+    pid.compute(0.0f, 0.0f, 1.0f);
+    pid.compute(10.0f, 0.0f, 1.0f);
 
     pid.reset();
 
-    float output = pid.compute(
-        10.0f,
-        0.0f,
-        1.0f
-    );
+    float output = pid.compute(10.0f, 0.0f, 1.0f);
 
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        3.0f,
-        output
-    );
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 3.0f, output);
 }
 
 
@@ -420,11 +301,7 @@ void test_change_parameters()
 
     PID pid(config);
 
-    float output1 = pid.compute(
-        10.0f,
-        8.0f,
-        0.1f
-    );
+    float output1 = pid.compute(10.0f, 8.0f, 0.1f);
 
     PIDConfig newConfig;
 
@@ -437,23 +314,10 @@ void test_change_parameters()
 
     pid.changeParameters(newConfig);
 
-    float output2 = pid.compute(
-        10.0f,
-        8.0f,
-        0.1f
-    );
+    float output2 = pid.compute(10.0f, 8.0f, 0.1f);
 
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        2.0f,
-        output1
-    );
-
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        10.0f,
-        output2
-    );
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 2.0f, output1);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 10.0f, output2);
 }
 
 
@@ -468,7 +332,6 @@ void test_derivative_response()
     config.kp = 0.0f;
     config.ki = 0.0f;
     config.kd = 1.0f;
-
     config.alpha = 0.0f;
 
     config.outputMin = -100.0f;
@@ -476,30 +339,17 @@ void test_derivative_response()
 
     PID pid(config);
 
-    pid.compute(
-        0.0f,
-        0.0f,
-        1.0f
-    );
+    pid.compute(0.0f, 0.0f, 1.0f);
 
-    float output = pid.compute(
-        10.0f,
-        0.0f,
-        1.0f
-    );
+    float output = pid.compute(10.0f, 0.0f, 1.0f);
 
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        10.0f,
-        output
-    );
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 10.0f, output);
 }
 
 
 // ============================================================
 // Test 14 - Zero dt does not produce invalid result
 // ============================================================
-
 
 void test_zero_dt()
 {
@@ -517,11 +367,7 @@ void test_zero_dt()
 
     PID pid(config);
 
-    float output = pid.compute(
-        10.0f,
-        10.0f,
-        0.0f
-    );
+    float output = pid.compute(10.0f, 10.0f, 0.0f);
 
     TEST_ASSERT_TRUE(std::isfinite(output));
 }
@@ -547,22 +393,14 @@ void test_dt_affects_integral()
 
     PID pid(config);
 
-    float output = pid.compute(
-        10.0f,
-        8.0f,
-        0.5f
-    );
+    float output = pid.compute(10.0f, 8.0f, 0.5f);
 
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        1.0f,
-        output
-    );
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 1.0f, output);
 }
 
 
 // ============================================================
-// Test 16 - Combined PID
+// Test 16 - Combined PI
 // ============================================================
 
 void test_combined_pi()
@@ -581,21 +419,13 @@ void test_combined_pi()
 
     PID pid(config);
 
-    float output = pid.compute(
-        10.0f,
-        8.0f,
-        1.0f
-    );
+    float output = pid.compute(10.0f, 8.0f, 1.0f);
 
     // P = 2 * 2 = 4
     // I = 2 * 1 = 2
     // Total = 6
 
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        6.0f,
-        output
-    );
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 6.0f, output);
 }
 
 
@@ -621,11 +451,7 @@ void test_output_remains_bounded()
 
     for (int i = 0; i < 100; ++i)
     {
-        float output = pid.compute(
-            100.0f,
-            0.0f,
-            0.01f
-        );
+        float output = pid.compute(100.0f, 0.0f, 0.01f);
 
         TEST_ASSERT_TRUE(output <= 20.0f);
         TEST_ASSERT_TRUE(output >= -20.0f);
@@ -657,18 +483,10 @@ void test_negative_integral_limit()
 
     for (int i = 0; i < 20; ++i)
     {
-        output = pid.compute(
-            0.0f,
-            10.0f,
-            1.0f
-        );
+        output = pid.compute(0.0f, 10.0f, 1.0f);
     }
 
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        -5.0f,
-        output
-    );
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, -5.0f, output);
 }
 
 
@@ -692,31 +510,14 @@ void test_reset_returns_to_initial_state()
 
     PID pid(config);
 
-    float first = pid.compute(
-        10.0f,
-        8.0f,
-        1.0f
-    );
+    float first = pid.compute(10.0f, 8.0f, 1.0f);
 
-    pid.compute(
-        10.0f,
-        8.0f,
-        1.0f
-    );
-
+    pid.compute(10.0f, 8.0f, 1.0f);
     pid.reset();
 
-    float afterReset = pid.compute(
-        10.0f,
-        8.0f,
-        1.0f
-    );
+    float afterReset = pid.compute(10.0f, 8.0f, 1.0f);
 
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        first,
-        afterReset
-    );
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, first, afterReset);
 }
 
 
@@ -748,18 +549,11 @@ void test_change_parameters_updates_limits()
 
     pid.changeParameters(newConfig);
 
-    float output = pid.compute(
-        10.0f,
-        0.0f,
-        0.1f
-    );
+    float output = pid.compute(10.0f, 0.0f, 0.1f);
 
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        5.0f,
-        output
-    );
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 5.0f, output);
 }
+
 
 // ============================================================
 // Test 21 - Derivative low-pass filter
@@ -772,7 +566,6 @@ void test_derivative_filter()
     config.kp = 0.0f;
     config.ki = 0.0f;
     config.kd = 1.0f;
-
     config.alpha = 0.5f;
 
     config.outputMin = -100.0f;
@@ -780,27 +573,13 @@ void test_derivative_filter()
 
     PID pid(config);
 
-    pid.compute(
-        0.0f,
-        0.0f,
-        1.0f
-    );
+    pid.compute(0.0f, 0.0f, 1.0f);
 
-    float output = pid.compute(
-        10.0f,
-        0.0f,
-        1.0f
-    );
+    float output = pid.compute(10.0f, 0.0f, 1.0f);
 
-    // raw derivative = 10
-    // filtered derivative = 0.5 * 0 + 0.5 * 10
-    //                      = 5
+    // alpha = 0.5: filtered derivative = 0.5 * 10 = 5
 
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        5.0f,
-        output
-    );
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 5.0f, output);
 }
 
 
@@ -815,7 +594,6 @@ void test_derivative_filter_alpha_one()
     config.kp = 0.0f;
     config.ki = 0.0f;
     config.kd = 1.0f;
-
     config.alpha = 1.0f;
 
     config.outputMin = -100.0f;
@@ -823,29 +601,13 @@ void test_derivative_filter_alpha_one()
 
     PID pid(config);
 
-    pid.compute(
-        0.0f,
-        0.0f,
-        1.0f
-    );
+    pid.compute(0.0f, 0.0f, 1.0f);
 
-    float output = pid.compute(
-        10.0f,
-        0.0f,
-        1.0f
-    );
+    float output = pid.compute(10.0f, 0.0f, 1.0f);
 
-    // derivative =
-    // 1.0 * previousDerivative +
-    // 0.0 * rawDerivative
-    //
-    // previousDerivative = 0
+    // alpha = 1 keeps only the previous filtered derivative.
 
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        0.0f,
-        output
-    );
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, output);
 }
 
 
@@ -860,7 +622,6 @@ void test_derivative_filter_alpha_zero()
     config.kp = 0.0f;
     config.ki = 0.0f;
     config.kd = 1.0f;
-
     config.alpha = 0.0f;
 
     config.outputMin = -100.0f;
@@ -868,26 +629,13 @@ void test_derivative_filter_alpha_zero()
 
     PID pid(config);
 
-    pid.compute(
-        0.0f,
-        0.0f,
-        1.0f
-    );
+    pid.compute(0.0f, 0.0f, 1.0f);
 
-    float output = pid.compute(
-        10.0f,
-        0.0f,
-        1.0f
-    );
+    float output = pid.compute(10.0f, 0.0f, 1.0f);
 
-    // alpha = 0 means no filtering
-    // derivative = raw derivative = 10
+    // alpha = 0 disables derivative filtering.
 
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        10.0f,
-        output
-    );
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 10.0f, output);
 }
 
 
@@ -911,11 +659,7 @@ void test_change_parameters_preserves_state()
 
     PID pid(config);
 
-    pid.compute(
-        10.0f,
-        0.0f,
-        1.0f
-    );
+    pid.compute(10.0f, 0.0f, 1.0f);
 
     PIDConfig newConfig;
 
@@ -931,26 +675,12 @@ void test_change_parameters_preserves_state()
 
     pid.changeParameters(newConfig);
 
-    float output = pid.compute(
-        10.0f,
-        0.0f,
-        1.0f
-    );
+    float output = pid.compute(10.0f, 0.0f, 1.0f);
 
-    // Integral before change = 10
-    //
-    // Second compute:
-    // Integral = 10 + 10 = 20
-    // P = 1 * 10 = 10
-    // I = 1 * 20 = 20
-    //
-    // Total = 30
+    // The integral state survives a parameter change.
+    // Integral = 10 + 10 = 20, P = 10, I = 20, total = 30.
 
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        30.0f,
-        output
-    );
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 30.0f, output);
 }
 
 
@@ -988,17 +718,9 @@ void test_change_parameters_updates_integral_limits()
 
     pid.changeParameters(newConfig);
 
-    float output = pid.compute(
-        10.0f,
-        0.0f,
-        1.0f
-    );
+    float output = pid.compute(10.0f, 0.0f, 1.0f);
 
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        5.0f,
-        output
-    );
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 5.0f, output);
 }
 
 
@@ -1013,7 +735,6 @@ void test_change_parameters_updates_alpha()
     config.kp = 0.0f;
     config.ki = 0.0f;
     config.kd = 1.0f;
-
     config.alpha = 0.0f;
 
     config.outputMin = -100.0f;
@@ -1021,18 +742,13 @@ void test_change_parameters_updates_alpha()
 
     PID pid(config);
 
-    pid.compute(
-        0.0f,
-        0.0f,
-        1.0f
-    );
+    pid.compute(0.0f, 0.0f, 1.0f);
 
     PIDConfig newConfig;
 
     newConfig.kp = 0.0f;
     newConfig.ki = 0.0f;
     newConfig.kd = 1.0f;
-
     newConfig.alpha = 0.5f;
 
     newConfig.outputMin = -100.0f;
@@ -1040,21 +756,11 @@ void test_change_parameters_updates_alpha()
 
     pid.changeParameters(newConfig);
 
-    float output = pid.compute(
-        10.0f,
-        0.0f,
-        1.0f
-    );
+    float output = pid.compute(10.0f, 0.0f, 1.0f);
 
-    // alpha = 0.5
-    // derivative = 0.5 * 0 + 0.5 * 10
-    //             = 5
+    // alpha = 0.5: filtered derivative = 5.
 
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        5.0f,
-        output
-    );
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 5.0f, output);
 }
 
 
@@ -1069,7 +775,6 @@ void test_reset_clears_all_state()
     config.kp = 1.0f;
     config.ki = 1.0f;
     config.kd = 1.0f;
-
     config.alpha = 0.0f;
 
     config.outputMin = -100.0f;
@@ -1080,43 +785,17 @@ void test_reset_clears_all_state()
 
     PID pid(config);
 
-    pid.compute(
-        10.0f,
-        0.0f,
-        1.0f
-    );
-
-    pid.compute(
-        20.0f,
-        0.0f,
-        1.0f
-    );
+    pid.compute(10.0f, 0.0f, 1.0f);
+    pid.compute(20.0f, 0.0f, 1.0f);
 
     pid.reset();
 
-    float output = pid.compute(
-        10.0f,
-        0.0f,
-        1.0f
-    );
+    float output = pid.compute(10.0f, 0.0f, 1.0f);
 
-    // After reset:
-    //
-    // error = 10
-    // integral = 10
-    // derivative = 10
-    //
-    // P = 10
-    // I = 10
-    // D = 10
-    //
-    // Total = 30
+    // After reset, all internal state starts from zero.
+    // P = 10, I = 10, D = 10, total = 30.
 
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        30.0f,
-        output
-    );
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 30.0f, output);
 }
 
 
@@ -1131,7 +810,6 @@ void test_negative_dt()
     config.kp = 2.0f;
     config.ki = 1.0f;
     config.kd = 1.0f;
-
     config.alpha = 0.7f;
 
     config.outputMin = -100.0f;
@@ -1142,11 +820,7 @@ void test_negative_dt()
 
     PID pid(config);
 
-    float output = pid.compute(
-        10.0f,
-        10.0f,
-        -1.0f
-    );
+    float output = pid.compute(10.0f, 10.0f, -1.0f);
 
     TEST_ASSERT_TRUE(std::isfinite(output));
 }
@@ -1163,7 +837,6 @@ void test_derivative_negative_change()
     config.kp = 0.0f;
     config.ki = 0.0f;
     config.kd = 1.0f;
-
     config.alpha = 0.0f;
 
     config.outputMin = -100.0f;
@@ -1171,27 +844,13 @@ void test_derivative_negative_change()
 
     PID pid(config);
 
-    pid.compute(
-        10.0f,
-        0.0f,
-        1.0f
-    );
+    pid.compute(10.0f, 0.0f, 1.0f);
 
-    float output = pid.compute(
-        0.0f,
-        0.0f,
-        1.0f
-    );
+    float output = pid.compute(0.0f, 0.0f, 1.0f);
 
-    // error changed from 10 to 0
-    // derivative = (0 - 10) / 1
-    //             = -10
+    // Error changes from 10 to 0, producing a negative derivative.
 
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        -10.0f,
-        output
-    );
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, -10.0f, output);
 }
 
 
@@ -1206,7 +865,6 @@ void test_derivative_measurement_change()
     config.kp = 0.0f;
     config.ki = 0.0f;
     config.kd = 1.0f;
-
     config.alpha = 0.0f;
 
     config.outputMin = -100.0f;
@@ -1214,27 +872,13 @@ void test_derivative_measurement_change()
 
     PID pid(config);
 
-    pid.compute(
-        10.0f,
-        0.0f,
-        1.0f
-    );
+    pid.compute(10.0f, 0.0f, 1.0f);
 
-    float output = pid.compute(
-        10.0f,
-        5.0f,
-        1.0f
-    );
+    float output = pid.compute(10.0f, 5.0f, 1.0f);
 
-    // error changed from 10 to 5
-    // derivative = (5 - 10) / 1
-    //             = -5
+    // Error changes from 10 to 5, so the derivative is -5.
 
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        -5.0f,
-        output
-    );
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, -5.0f, output);
 }
 
 
@@ -1258,41 +902,13 @@ void test_integral_stays_at_upper_limit()
 
     PID pid(config);
 
-    float output1 = pid.compute(
-        10.0f,
-        0.0f,
-        1.0f
-    );
+    float output1 = pid.compute(10.0f, 0.0f, 1.0f);
+    float output2 = pid.compute(10.0f, 0.0f, 1.0f);
+    float output3 = pid.compute(10.0f, 0.0f, 1.0f);
 
-    float output2 = pid.compute(
-        10.0f,
-        0.0f,
-        1.0f
-    );
-
-    float output3 = pid.compute(
-        10.0f,
-        0.0f,
-        1.0f
-    );
-
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        5.0f,
-        output1
-    );
-
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        5.0f,
-        output2
-    );
-
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        5.0f,
-        output3
-    );
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 5.0f, output1);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 5.0f, output2);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 5.0f, output3);
 }
 
 
@@ -1316,41 +932,13 @@ void test_integral_stays_at_lower_limit()
 
     PID pid(config);
 
-    float output1 = pid.compute(
-        0.0f,
-        10.0f,
-        1.0f
-    );
+    float output1 = pid.compute(0.0f, 10.0f, 1.0f);
+    float output2 = pid.compute(0.0f, 10.0f, 1.0f);
+    float output3 = pid.compute(0.0f, 10.0f, 1.0f);
 
-    float output2 = pid.compute(
-        0.0f,
-        10.0f,
-        1.0f
-    );
-
-    float output3 = pid.compute(
-        0.0f,
-        10.0f,
-        1.0f
-    );
-
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        -5.0f,
-        output1
-    );
-
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        -5.0f,
-        output2
-    );
-
-    TEST_ASSERT_FLOAT_WITHIN(
-        0.001f,
-        -5.0f,
-        output3
-    );
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, -5.0f, output1);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, -5.0f, output2);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, -5.0f, output3);
 }
 
 
@@ -1365,7 +953,6 @@ void test_output_remains_finite()
     config.kp = 2.0f;
     config.ki = 1.0f;
     config.kd = 1.0f;
-
     config.alpha = 0.5f;
 
     config.outputMin = -100.0f;

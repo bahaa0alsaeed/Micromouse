@@ -1,6 +1,7 @@
 #pragma once
-#include "VL53L0X.h"
+#include <VL53L0X.h>
 #include "../../include/IWallSensors.h"
+
 
 struct WallSensorConfig
 {
@@ -23,9 +24,9 @@ struct WallReadings
 
 class WallSensors : public IWallSensors
 {
-    VL53L0X frontSensor;
-    VL53L0X leftSensor;
-    VL53L0X rightSensor;
+    VL53L0x frontSensor;
+    VL53L0x leftSensor;
+    VL53L0x rightSensor;
     WallSensorConfig config;
     WallReadings readings;
 
