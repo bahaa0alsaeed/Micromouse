@@ -24,9 +24,9 @@ struct WallReadings
 
 class WallSensors : public IWallSensors
 {
-    VL53L0x frontSensor;
-    VL53L0x leftSensor;
-    VL53L0x rightSensor;
+    VL53L0X frontSensor;
+    VL53L0X leftSensor;
+    VL53L0X rightSensor;
     WallSensorConfig config;
     WallReadings readings;
 

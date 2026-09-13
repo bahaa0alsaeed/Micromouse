@@ -8,7 +8,7 @@ BFS::BFS(Maze& maze, INavigation& navigation, IWallSensors& wallSensors)
 {
 }
 
-void BFS::turnTO(const Direction dir)
+void BFS::turnTO(const Direction dir) const
 {
     if (robotDir == dir)
         return;
@@ -114,7 +114,7 @@ void BFS::solve(const CellPosition& start, const CellPosition& goal)
     std::reverse(path.begin(), path.end());
 }
 
-void BFS::executePath()
+void BFS::executePath() const
 {
     if (path.size() < 2)
         return;

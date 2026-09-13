@@ -14,7 +14,7 @@ class BFS
     std::vector<CellPosition> path;
 
     // Rotate the robot to face the specified direction.
-    void turnTO(Direction dir);
+    void turnTO(Direction dir) const;
 
     // Return the neighboring cell in the specified direction.
     CellPosition newCell(const CellPosition& pos, const Direction& dir);
@@ -26,7 +26,7 @@ public:
     void solve(const CellPosition& start, const CellPosition& goal);
 
     // Execute the calculated path using the navigation system.
-    void executePath();
+    void executePath() const;
 
     // Return the calculated path.
     const std::vector<CellPosition>& getPath() const { return path; }
