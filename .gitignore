@@ -1,3 +1,5 @@
 .pio
 .idea
 .junie
+/mms_tests/test.exe
+/mms_tests/discovered_maze.txt

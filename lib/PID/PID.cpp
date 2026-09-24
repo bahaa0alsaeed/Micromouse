@@ -49,7 +49,6 @@ float PID::compute(const float setpoint, const float measurement, float dt)
 
 void PID::changeParameters(const PIDConfig& newConfig)
 {
-    // Update the controller parameters without resetting its state.
     config = newConfig;
 }
 

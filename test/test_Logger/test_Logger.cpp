@@ -25,21 +25,23 @@ void setup()
     Serial.print("ESP32 IP: ");
     Serial.println(WiFi.localIP());
 
-    logger.setUpdateInterval(50);
+    logger.setFastInterval(50);
+    logger.setSlowInterval(500);
 
-    logger.registerVariable("sine", &sineWave);
-    logger.registerVariable("ramp", &ramp);
-    logger.registerVariable("constant", &constant);
-    logger.registerVariable("square", &squareWave);
+    logger.registerFastVariable("sine", &sineWave);
+    logger.registerFastVariable("ramp", &ramp);
 
+    logger.registerSlowVariable("constant", &constant);
+    logger.registerSlowVariable("square", &squareWave);
 }
+
 // ---------------------------------------------------------
 // Loop
 // ---------------------------------------------------------
 
 void loop()
 {
-    static uint32_t startTime = micros();
+    static const uint32_t startTime = micros();
 
     const float t = (micros() - startTime) / 1000000.0f;
 

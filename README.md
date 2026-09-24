@@ -141,6 +141,32 @@ Micromouse/
 
 ---
 
+## Environment Variables
+
+The project requires the following environment variables to be defined before building or running the project:
+
+| Variable        | Description                                                    |
+| --------------- | -------------------------------------------------------------- |
+| `WIFI_SSID`     | Wi-Fi network name used by the ESP32.                          |
+| `WIFI_PASSWORD` | Password of the Wi-Fi network.                                 |
+| `LOGGER_HOST`   | IP address or hostname of the device running Serial Studio.    |
+| `LOGGER_PORT`   | Network port used by the Logger to send data to Serial Studio. |
+
+These variables are used by the `Logger` to establish the network connection and send data to Serial Studio.
+
+Example:
+
+```text
+WIFI_SSID=YourWiFiName
+WIFI_PASSWORD=YourWiFiPassword
+LOGGER_HOST=192.168.1.100
+LOGGER_PORT=5000
+```
+
+The actual values should be provided through the project's environment configuration and should not be hard-coded in the source code.
+
+
+---
 ## Testing
 
 The project uses **Unity** for unit testing.
