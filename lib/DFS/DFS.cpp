@@ -79,6 +79,7 @@ void DFS::explore()
 
     // Mark the current cell as visited and discover its walls.
     maze.markVisited(robotPos);
+    wallSensors.update();
     updateWalls();
 
     // Try every direction from the current cell.
