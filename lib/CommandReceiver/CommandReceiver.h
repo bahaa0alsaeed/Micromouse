@@ -87,9 +87,7 @@ public:
     /**
      * Registers a command handler using a std::function callback.
      */
-    void onCommand(
-        const std::string& name,
-        CommandHandler handler);
+    void onCommand(const std::string& name, CommandHandler handler);
 
     /**
      * Registers a command handler using a regular function pointer.
@@ -98,9 +96,7 @@ public:
      * without requiring the caller to explicitly construct a
      * CommandHandler object.
      */
-    void onCommand(
-        const std::string& name,
-        void (*handler)(const Command&));
+    void onCommand(const std::string& name, void (*handler)(const Command&));
 
     /**
      * Checks for a received UDP packet and processes it when available.

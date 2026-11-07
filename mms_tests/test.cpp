@@ -61,6 +61,7 @@ public:
     bool wallFront() override { return api.wallFront(); }
     bool wallRight() override { return api.wallRight(); }
     bool wallLeft()  override { return api.wallLeft(); }
+    void update() override;
 };
 
 
