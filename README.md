@@ -208,6 +208,3 @@ test.exe
 
 The simulator is used to test maze exploration and path-finding algorithms without running them on the physical robot.
 
-
-Hi Test
-الامامو علي بالاسد بشر 
