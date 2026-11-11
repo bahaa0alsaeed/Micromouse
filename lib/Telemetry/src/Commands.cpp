@@ -1,66 +1,80 @@
-#include "CommandReceiver.h"
+#include "Commands.h"
 
-// Project-wide command receiver instance.
-CommandReceiver commandReceiver;
+#include <cerrno>
 
-const char* WIFI_SSID = MY_WIFI_SSID;
-const char* WIFI_PASSWORD = MY_WIFI_PASSWORD;
-const char* LOGGER_HOST = MY_LOGGER_HOST;
-constexpr uint16_t LOGGER_PORT = MY_LOGGER_PORT;
-
-
-CommandReceiver::CommandReceiver() = default;
-
-void CommandReceiver::begin(const uint16_t port)
+namespace
 {
+/**
+ * Parses the numeric part of a command frame.
+ *
+ * Replaces the original std::stof call, which threw an uncaught
+ * std::invalid_argument exception (aborting the ESP32) whenever the
+ * value part was not a valid number, e.g. "set_speed,abc".
+ *
+ * The value must be fully numeric; trailing characters other than
+ * spaces/tabs make the frame invalid.
+ */
+bool parseCommandValue(const std::string& text, float& out)
+{
+    const char* start = text.c_str();
+    char* end = nullptr;
 
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-    {
-        delay(100);
-    }
+    errno = 0;
+    const double value = strtod(start, &end);
 
-    IPAddress destination;
+    if (end == start || errno == ERANGE)
+        return false;
 
-    // Convert the configured destination address from text to an IP address.
-    if (!destination.fromString(LOGGER_HOST))
-    {
-        Serial.println("Invalid LOGGER_HOST");
-        return;
-    }
+    // Trailing spaces are tolerated, any other trailing character is not.
+    while (*end == ' ' || *end == '\t')
+        end++;
 
-    listenPort = port;
-    udp.begin(port);
+    if (*end != '\0')
+        return false;
 
+    out = static_cast<float>(value);
+    return true;
+}
 }
 
-void CommandReceiver::onCommand(
-    const std::string& name,
-    CommandHandler handler)
+void Commands::on(const std::string& name, CommandHandler handler)
 {
     handlers.push_back({name, std::move(handler)});
 }
 
-void CommandReceiver::onCommand(
-    const std::string& name,
-    void (*handler)(const Command&))
+void Commands::on(const std::string& name, void (*handler)(const Command&))
 {
     // Convert the function pointer to the common handler type so both
     // registration overloads use the same underlying implementation.
-    onCommand(name, CommandHandler(handler));
+    on(name, CommandHandler(handler));
 }
 
+void Commands::begin(const uint16_t port)
+{
+    listenPort = port;
+    bool result = udp.begin(port);
+    Serial.printf("[Commands] UDP begin: %s\n",
+                  result ? "OK" : "FAILED");
+}
 
-void CommandReceiver::update()
+void Commands::update()
 {
     // A port of zero indicates that the receiver has not been initialized.
     if (listenPort == 0)
         return;
 
-    // Commands can only be received while the Wi-Fi connection is active.
-    if (WiFi.status() != WL_CONNECTED)
-        return;
 
-    const int packetSize = udp.parsePacket();
+    int packetSize = udp.parsePacket();
+
+    if (packetSize > 0)
+    {
+        Serial.printf(
+            "[Commands] Packet received: %d bytes from %s:%u\n",
+            packetSize,
+            udp.remoteIP().toString().c_str(),
+            udp.remotePort()
+        );
+    }
 
     // No UDP packet is currently waiting.
     if (packetSize <= 0)
@@ -82,10 +96,13 @@ void CommandReceiver::update()
     parseAndDispatch(rxBuffer);
 }
 
-void CommandReceiver::parseAndDispatch(
-    const std::string& frame)
-{
+void Commands::parseAndDispatch(const std::string& frame) const {
     std::string content = frame;
+
+    Serial.printf(
+        "[DISPATCH] at %lu ms\n",
+        millis()
+    );
 
     // Remove trailing line-ending characters so that command matching is
     // performed against the actual command name/value rather than transport
@@ -113,10 +130,13 @@ void CommandReceiver::parseAndDispatch(
         cmd.name = content.substr(0, comma);
 
         // The text after the comma is the command value.
-        const std::string value = content.substr(comma + 1);
+        float value;
+
+        if (!parseCommandValue(content.substr(comma + 1), value))
+            return;
 
         cmd.hasValue = true;
-        cmd.value = std::stof(value);
+        cmd.value = value;
     }
 
     if (cmd.name.empty())

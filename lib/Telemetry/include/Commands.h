@@ -3,11 +3,9 @@
 #include <functional>
 #include <string>
 #include <vector>
+
 #include "WiFi.h"
 #include "WiFiUdp.h"
-
-extern const char* WIFI_SSID;
-extern const char* WIFI_PASSWORD;
 
 /**
  * Represents one received command.
@@ -45,9 +43,41 @@ using CommandHandler = std::function<void(const Command&)>;
  *
  * The receiver itself does not define what a command does. That behavior
  * is supplied by the code that registers each command handler.
+ *
+ * Incoming frames of the form "name,value" with a malformed value are
+ * discarded instead of aborting (the original implementation threw an
+ * uncaught std::invalid_argument exception for such frames).
+ *
+ * Instantiation and socket setup are internal; applications interact
+ * with this service through Telemetry::commands.
  */
-class CommandReceiver
+class Commands
 {
+public:
+    /**
+     * Registers a command handler using a std::function callback.
+     */
+    void on(const std::string& name, CommandHandler handler);
+
+    /**
+     * Registers a command handler using a regular function pointer.
+     *
+     * This overload allows simple standalone functions to be registered
+     * without requiring the caller to explicitly construct a
+     * CommandHandler object.
+     */
+    void on(const std::string& name, void (*handler)(const Command&));
+
+    /**
+     * Checks for a received UDP packet and processes it when available.
+     *
+     * This function is intended to be called repeatedly from the main loop.
+     */
+    void update();
+
+private:
+    friend class Telemetry;
+
     /**
      * Associates a command name with its callback.
      */
@@ -70,41 +100,12 @@ class CommandReceiver
     // Reusable buffer containing the most recently received UDP frame.
     std::string rxBuffer;
 
+    // Called once by Telemetry::begin().
+    void begin(uint16_t port);
+
     /**
      * Parses a received frame and dispatches the resulting command
      * to its registered handler.
      */
-    void parseAndDispatch(const std::string& frame);
-
-public:
-    CommandReceiver();
-
-    /**
-     * Starts listening for commands on the specified UDP port.
-     */
-    void begin(uint16_t port);
-
-    /**
-     * Registers a command handler using a std::function callback.
-     */
-    void onCommand(const std::string& name, CommandHandler handler);
-
-    /**
-     * Registers a command handler using a regular function pointer.
-     *
-     * This overload allows simple standalone functions to be registered
-     * without requiring the caller to explicitly construct a
-     * CommandHandler object.
-     */
-    void onCommand(const std::string& name, void (*handler)(const Command&));
-
-    /**
-     * Checks for a received UDP packet and processes it when available.
-     *
-     * This function is intended to be called repeatedly from the main loop.
-     */
-    void update();
+    void parseAndDispatch(const std::string& frame) const;
 };
-
-// Project-wide command receiver instance.
-extern CommandReceiver commandReceiver;

@@ -20,7 +20,7 @@ Low-level components that provide access to hardware functionality without depen
 
 - `VL53L0X` — external sensor library used by `WallSensors`.
 
-- `Logger` — shared logging facility used throughout the project.
+- `Telemetry` — unified UDP telemetry library (variable streaming + command reception), successor of the former `Logger` and `CommandReceiver` libraries.
 
 
 ### Core Components
@@ -106,9 +106,6 @@ Micromouse/
 │   ├── Encoder/
 │   │   ├── Encoder.cpp
 │   │   └── Encoder.h
-│   ├── Logger/
-│   │   ├── Logger.cpp
-│   │   └── Logger.h
 │   ├── Maze/
 │   │   ├── Maze.cpp
 │   │   └── Maze.h
@@ -118,6 +115,17 @@ Micromouse/
 │   ├── PID/
 │   │   ├── PID.cpp
 │   │   └── PID.h
+│   ├── Telemetry/
+│   │   ├── include/
+│   │   │   ├── Telemetry.h
+│   │   │   ├── Values.h
+│   │   │   └── Commands.h
+│   │   ├── src/
+│   │   │   ├── Telemetry.cpp
+│   │   │   ├── Values.cpp
+│   │   │   └── Commands.cpp
+│   │   ├── examples/
+│   │   └── README.md
 │   └── WallSensors/
 │       ├── WallSensors.cpp
 │       └── WallSensors.h
@@ -150,9 +158,9 @@ The project requires the following environment variables to be defined before bu
 | `WIFI_SSID`     | Wi-Fi network name used by the ESP32.                          |
 | `WIFI_PASSWORD` | Password of the Wi-Fi network.                                 |
 | `LOGGER_HOST`   | IP address or hostname of the device running Serial Studio.    |
-| `LOGGER_PORT`   | Network port used by the Logger to send data to Serial Studio. |
+| `LOGGER_PORT`   | Network port used by `Telemetry` to send data to Serial Studio. |
 
-These variables are used by the `Logger` to establish the network connection and send data to Serial Studio.
+These variables are used by the `Telemetry` library to establish the network connection and send data to Serial Studio.
 
 Example:
 
@@ -183,6 +191,13 @@ The current tests cover components such as:
 
 - `PID`
 
+The device tests under `test/test_Logger` and `test/test_CommandReceiver`
+exercise the `Telemetry` library on the ESP32:
+
+```bash
+pio test -e esp32dev -f test_Logger -f test_CommandReceiver --without-uploading
+```
+
 
 ---
 
@@ -207,5 +222,3 @@ test.exe
 ```
 
 The simulator is used to test maze exploration and path-finding algorithms without running them on the physical robot.
-
-# testo
