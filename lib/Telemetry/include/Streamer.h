@@ -27,10 +27,10 @@
  * Outgoing packets contain comma-separated name=value pairs.
  *
  * Instantiation and socket setup are internal; applications interact with
- * this service through Telemetry::values. The service performs no Wi-Fi
+ * this service through Telemetry::stream. The service performs no Wi-Fi
  * management by itself.
  */
-class Values
+class Streamer
 {
 public:
     void setFastInterval(uint32_t ms);
@@ -38,17 +38,18 @@ public:
 
 
     // Registers a variable in the fast or slow update group.
-    void registerFast(const std::string& name, const float* variable);
-    void registerSlow(const std::string& name, const float* variable);
+    void addFast(const std::string& name, const float* variable);
+    void addSlow(const std::string& name, const float* variable);
 
-    /**
-     * Checks whether it is time to send the next fast-update or
-     * slow-update packet and sends it if so.
-     */
-    void update();
+
+    // Explicitly non-copyable: the services own UDP sockets and state.
+    Streamer(const Streamer&) = delete;
+    Streamer& operator=(const Streamer&) = delete;
 
 private:
     friend class Telemetry;
+
+    Streamer() = default;
 
     /**
      * The variable is referenced through a pointer so that the streamer
@@ -86,4 +87,10 @@ private:
      * followed by a newline character.
      */
     void sendPacket(const std::vector<Variable>& variables);
+
+    /**
+     * Checks whether it is time to send the next fast-update or
+     * slow-update packet and sends it if so.
+     */
+    void update();
 };

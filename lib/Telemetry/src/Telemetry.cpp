@@ -1,10 +1,9 @@
 #include "Telemetry.h"
-
 #include <Arduino.h>
 #include "WiFi.h"
 
 
-void Telemetry::begin(const TelemetryConfig& config)
+bool Telemetry::begin(const TelemetryConfig& config)
 {
     // Convert the configured destination address from text to an IP
     // address. Networking is intentionally not started on failure so a
@@ -14,7 +13,7 @@ void Telemetry::begin(const TelemetryConfig& config)
     if (!destination.fromString(config.host))
     {
         Serial.println("Telemetry: invalid host address");
-        return;
+        return false;
     }
 
     // Start the connection. Completion is observed non-blocking in
@@ -25,10 +24,12 @@ void Telemetry::begin(const TelemetryConfig& config)
     WiFi.begin(wifiSsid, wifiPassword);
     lastWifiAttempt = millis();
 
-    values.begin(destination, config.telemetryPort);
+    stream.begin(destination, config.streamerPort);
     commands.begin(config.commandPort);
+    logs.begin(destination, config.logPort);
 
     initialized = true;
+    return true;
 }
 
 void Telemetry::update()
@@ -50,6 +51,7 @@ void Telemetry::update()
     }
 
     // Connected: tick every service.
-    values.update();
+    stream.update();
     commands.update();
+    logs.update();
 }

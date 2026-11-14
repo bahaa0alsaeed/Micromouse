@@ -1,7 +1,8 @@
 #pragma once
 
-#include "Values.h"
+#include "Streamer.h"
 #include "Commands.h"
+#include "Logger.h"
 
 /**
  * Central configuration of the unified Telemetry library.
@@ -21,10 +22,14 @@ struct TelemetryConfig
     const char* host = nullptr;
 
     // UDP port used for outgoing value packets.
-    uint16_t telemetryPort = 0;
+    uint16_t streamerPort = 0;
 
     // UDP port that receives incoming commands.
     uint16_t commandPort = 0;
+
+    // UDP port for outgoing log packets. Zero falls back to
+    // telemetryPort so both streams share one endpoint by default.
+    uint16_t logPort = 0;
 };
 
 /**
@@ -32,8 +37,9 @@ struct TelemetryConfig
  *
  * The library is split into independent services:
  *
- * - values   streams registered variables over UDP (formerly Logger).
+ * - stream    streams registered variables over UDP (formerly Logger).
  * - commands receives command frames over UDP (formerly CommandReceiver).
+ * - logs     buffers textual log messages and sends them over UDP.
  *
  * Telemetry is the sole owner of the Wi-Fi connection: begin() starts
  * the connection and update() keeps it alive and reconnects when it
@@ -52,8 +58,9 @@ struct TelemetryConfig
  *
  *     void setup() {
  *         telemetry.begin();
- *         telemetry.values.registerFast("speed", &speed);
+ *         telemetry.stream.addFast("speed", &speed);
  *         telemetry.commands.on("set_speed", speedHandler);
+ *         telemetry.logs.info("Robot initialized");
  *     }
  *
  *     void loop() {
@@ -74,7 +81,7 @@ public:
      * Initializes the library from an explicit configuration,
      * which takes priority over the environment macros.
      */
-    void begin(const TelemetryConfig& config);
+    bool begin(const TelemetryConfig& config);
 
     /**
      * Keeps the Wi-Fi connection alive and ticks every service.
@@ -82,8 +89,9 @@ public:
      */
     void update();
 
-    Values values;
+    Streamer stream;
     Commands commands;
+    Logger logs;
 
 private:
     bool initialized = false;

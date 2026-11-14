@@ -1,39 +1,39 @@
-#include "Values.h"
+#include "Streamer.h"
 
 #include <Arduino.h>
 
 
-void Values::setFastInterval(const uint32_t ms)
+void Streamer::setFastInterval(const uint32_t ms)
 {
     if (ms > 0)
         fastInterval = ms;
 }
 
-void Values::setSlowInterval(const uint32_t ms)
+void Streamer::setSlowInterval(const uint32_t ms)
 {
     if (ms > 0)
         slowInterval = ms;
 }
 
-void Values::registerFast(const std::string& name, const float* variable)
+void Streamer::addFast(const std::string& name, const float* variable)
 {
     fastVariables.push_back({name, variable});
 }
 
-void Values::registerSlow(const std::string& name, const float* variable)
+void Streamer::addSlow(const std::string& name, const float* variable)
 {
     slowVariables.push_back({name, variable});
 }
 
 // Compatibility aliases for the original Logger API.
 
-void Values::begin(const IPAddress& destination, const uint16_t port)
+void Streamer::begin(const IPAddress& destination, const uint16_t port)
 {
     destinationIP = destination;
     destinationPort = port;
 }
 
-void Values::sendPacket(const std::vector<Variable>& variables)
+void Streamer::sendPacket(const std::vector<Variable>& variables)
 {
     if (variables.empty())
         return;
@@ -60,7 +60,7 @@ void Values::sendPacket(const std::vector<Variable>& variables)
 
 }
 
-void Values::update()
+void Streamer::update()
 {
     if (destinationPort == 0)
         return;

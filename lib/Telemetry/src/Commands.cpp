@@ -66,15 +66,6 @@ void Commands::update()
 
     int packetSize = udp.parsePacket();
 
-    if (packetSize > 0)
-    {
-        Serial.printf(
-            "[Commands] Packet received: %d bytes from %s:%u\n",
-            packetSize,
-            udp.remoteIP().toString().c_str(),
-            udp.remotePort()
-        );
-    }
 
     // No UDP packet is currently waiting.
     if (packetSize <= 0)
@@ -98,11 +89,6 @@ void Commands::update()
 
 void Commands::parseAndDispatch(const std::string& frame) const {
     std::string content = frame;
-
-    Serial.printf(
-        "[DISPATCH] at %lu ms\n",
-        millis()
-    );
 
     // Remove trailing line-ending characters so that command matching is
     // performed against the actual command name/value rather than transport

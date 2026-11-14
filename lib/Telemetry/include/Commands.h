@@ -68,15 +68,16 @@ public:
      */
     void on(const std::string& name, void (*handler)(const Command&));
 
-    /**
-     * Checks for a received UDP packet and processes it when available.
-     *
-     * This function is intended to be called repeatedly from the main loop.
-     */
-    void update();
+
+
+    // Explicitly non-copyable: the services own UDP sockets and state.
+    Commands(const Commands&) = delete;
+    Commands& operator=(const Commands&) = delete;
 
 private:
     friend class Telemetry;
+
+    Commands() = default;
 
     /**
      * Associates a command name with its callback.
@@ -108,4 +109,11 @@ private:
      * to its registered handler.
      */
     void parseAndDispatch(const std::string& frame) const;
+
+    /**
+     * Checks for a received UDP packet and processes it when available.
+     *
+     * This function is intended to be called repeatedly from the main loop.
+     */
+    void update();
 };
