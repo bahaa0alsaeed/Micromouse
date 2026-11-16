@@ -1,32 +1,42 @@
 #pragma once
 
+#include <array>
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <vector>
-
 #include "WiFi.h"
 #include "WiFiUdp.h"
 
 /**
  * Represents one received command.
  *
- * A command consists of a name and may optionally contain a numeric value.
+ * A command consists of a name and up to MAX_VALUES comma-separated
+ * numeric values.
  *
  * Examples:
  *
- *     - stop
+ *     - stop                     (valueCount == 0)
  *
- *     - set_speed,200
+ *     - set_speed,200            (valueCount == 1)
+ *
+ *     - set_pid,1.2,0.05,0.8     (valueCount == 3)
  */
 struct Command
 {
+    // Maximum number of numeric values carried by one command.
+    static constexpr uint8_t MAX_VALUES = 8;
+
     std::string name;
 
-    // Indicates whether the received command contained a value.
-    bool hasValue = false;
+    // Parsed numeric values. Only the first valueCount entries are
+    // meaningful; the remaining entries stay zero-initialized. A
+    // fixed-size array is used so no dynamic allocation is involved.
+    std::array<float, MAX_VALUES> values{};
 
-    // Numeric value associated with the command when one is present.
-    float value = 0.0f;
+    // Number of values successfully parsed for this command. A command
+    // without numeric values has a valueCount of zero.
+    uint8_t valueCount = 0;
 };
 
 /**
@@ -44,9 +54,11 @@ using CommandHandler = std::function<void(const Command&)>;
  * The receiver itself does not define what a command does. That behavior
  * is supplied by the code that registers each command handler.
  *
- * Incoming frames of the form "name,value" with a malformed value are
- * discarded instead of aborting (the original implementation threw an
- * uncaught std::invalid_argument exception for such frames).
+ * Incoming frames of the form "name,value1,value2,..." are parsed in full
+ * before dispatching: only commands whose every field parsed successfully
+ * reach a registered handler, and malformed frames are discarded instead
+ * of aborting (the original implementation threw an uncaught
+ * std::invalid_argument exception for such frames).
  *
  * Instantiation and socket setup are internal; applications interact
  * with this service through Telemetry::commands.

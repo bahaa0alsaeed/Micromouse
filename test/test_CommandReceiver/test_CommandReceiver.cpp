@@ -1,5 +1,7 @@
 #include <Arduino.h>
-#include "CommandReceiver.h"
+#include <Telemetry.h>
+
+Telemetry telemetry;
 
 // ---------------------------------------------------------
 // Command handlers
@@ -24,15 +26,15 @@ void handleLedOff(const Command& command)
 
 void handleBlinkSpeed(const Command& command)
 {
-    if (!command.hasValue)
+    if (command.valueCount != 1)
     {
-        Serial.println("Blink_Speed received without value");
+        Serial.println("Blink_Speed received without a value");
         return;
     }
 
-    blinkInterval = command.value;
+    blinkInterval = command.values[0];
     Serial.print("Blink_Speed received: ");
-    Serial.println(command.value);
+    Serial.println(command.values[0]);
 
 }
 
@@ -45,11 +47,13 @@ void setup()
     Serial.begin(115200);
     delay(1000);
 
-    commandReceiver.begin(MY_LOGGER_PORT);
+    // Without arguments the default configuration is used, whose command
+    // port is MY_LOGGER_PORT — the same port as before.
+    telemetry.begin();
 
-    commandReceiver.onCommand("LED_ON", handleLedOn);
-    commandReceiver.onCommand("LED_OFF", handleLedOff);
-    commandReceiver.onCommand("Blink_Speed", handleBlinkSpeed);
+    telemetry.commands.on("LED_ON", handleLedOn);
+    telemetry.commands.on("LED_OFF", handleLedOff);
+    telemetry.commands.on("Blink_Speed", handleBlinkSpeed);
 
     Serial.println("CommandReceiver test started");
     Serial.print("Listening on UDP port: ");
@@ -64,7 +68,7 @@ void setup()
 
 void loop()
 {
-    commandReceiver.update();
+    telemetry.update();
 
     if (isBlinking && millis() - t >= blinkInterval)
     {

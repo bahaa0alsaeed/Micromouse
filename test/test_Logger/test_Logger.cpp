@@ -1,6 +1,8 @@
 #include <Arduino.h>
-#include "Logger.h"
+#include <Telemetry.h>
 #include <cmath>
+
+Telemetry telemetry;
 
 // ---------------------------------------------------------
 // Test variables
@@ -20,19 +22,19 @@ void setup()
     Serial.begin(115200);
     delay(1000);
 
-    logger.begin();
+    telemetry.begin();
 
     Serial.print("ESP32 IP: ");
     Serial.println(WiFi.localIP());
 
-    logger.setFastInterval(50);
-    logger.setSlowInterval(500);
+    telemetry.stream.setFastInterval(50);
+    telemetry.stream.setSlowInterval(500);
 
-    logger.registerFastVariable("sine", &sineWave);
-    logger.registerFastVariable("ramp", &ramp);
+    telemetry.stream.addFast("sine", &sineWave);
+    telemetry.stream.addFast("ramp", &ramp);
 
-    logger.registerSlowVariable("constant", &constant);
-    logger.registerSlowVariable("square", &squareWave);
+    telemetry.stream.addSlow("constant", &constant);
+    telemetry.stream.addSlow("square", &squareWave);
 }
 
 // ---------------------------------------------------------
@@ -60,7 +62,7 @@ void loop()
     // Square wave: ±100
     squareWave = (fmodf(t, 2.0f) < 1.0f) ? 100.0f : -100.0f;
 
-    logger.update();
+    telemetry.update();
 
     delay(1);
 }

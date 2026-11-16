@@ -12,7 +12,6 @@ bool Telemetry::begin(const TelemetryConfig& config)
 
     if (!destination.fromString(config.host))
     {
-        Serial.println("Telemetry: invalid host address");
         return false;
     }
 
