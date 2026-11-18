@@ -21,7 +21,7 @@ bool Maze::hasWall(const CellPosition& pos, const Direction dir) const
 
 void Maze::setWall(const CellPosition& pos, const Direction dir)
 {
-    if (!isValid(pos)) return;
+    if (!isValid(pos)) return;//0
 
     // Store the wall and mark it as known.
     cells[pos.x][pos.y].walls |= dir;
@@ -49,6 +49,7 @@ void Maze::setWall(const CellPosition& pos, const Direction dir)
             if (pos.x > 0) cells[pos.x - 1][pos.y].walls |= EAST;
             if (pos.x > 0) cells[pos.x - 1][pos.y].known |= EAST;
             break;
+        default: return;    
     }
 }
 
@@ -64,30 +65,43 @@ void Maze::setOpen(const CellPosition& pos, const Direction dir)
 {
     if (!isValid(pos)) return;
 
-    // Mark the direction as known without adding a wall.
+    // Clear the wall and mark the direction as known in the current cell.
+    cells[pos.x][pos.y].walls &= ~dir;
     cells[pos.x][pos.y].known |= dir;
 
-    // The neighboring cell must also know that this side is open.
+    // Clear the shared wall and mark the side as known in the neighboring cell.
     switch (dir)
     {
     case NORTH:
-        if (pos.y + 1 < HEIGHT) cells[pos.x][pos.y + 1].known |= SOUTH;
+        if (pos.y + 1 < HEIGHT) {
+            cells[pos.x][pos.y + 1].walls &= ~SOUTH;
+            cells[pos.x][pos.y + 1].known |= SOUTH;
+        }
         break;
 
     case SOUTH:
-        if (pos.y > 0) cells[pos.x][pos.y - 1].known |= NORTH;
+        if (pos.y > 0) {
+            cells[pos.x][pos.y - 1].walls &= ~NORTH;
+            cells[pos.x][pos.y - 1].known |= NORTH;
+        }
         break;
 
     case EAST:
-        if (pos.x + 1 < WIDTH) cells[pos.x + 1][pos.y].known |= WEST;
+        if (pos.x + 1 < WIDTH) {
+            cells[pos.x + 1][pos.y].walls &= ~WEST;
+            cells[pos.x + 1][pos.y].known |= WEST;
+        }
         break;
 
     case WEST:
-        if (pos.x > 0) cells[pos.x - 1][pos.y].known |= EAST;
+        if (pos.x > 0) {
+            cells[pos.x - 1][pos.y].walls &= ~EAST;
+            cells[pos.x - 1][pos.y].known |= EAST;
+        }
         break;
+    default: return;    
     }
 }
-
 bool Maze::isVisited(const CellPosition& pos) const
 {
     if (isValid(pos)) return (cells[pos.x][pos.y].visited);
@@ -100,12 +114,12 @@ void Maze::markVisited(const CellPosition& pos)
     if (isValid(pos)) cells[pos.x][pos.y].visited = true;
 }
 
-unsigned int Maze::getCost(const CellPosition& pos) const
+uint8_t Maze::getCost(const CellPosition& pos) const
 {
-    if (!isValid(pos)) return 0;
+    if (!isValid(pos)) return UINT8_MAX; 
 
     return cells[pos.x][pos.y].cost;
-}
+ }
 
 void Maze::setCost(const CellPosition& pos, const uint8_t cost)
 {
@@ -124,15 +138,20 @@ void Maze::reset()
     }
 
     // Add the outer boundary walls.
-    for (unsigned int y = 0; y < HEIGHT; y++)
-    {
-        cells[0][y].walls |= WEST;
-        cells[WIDTH - 1][y].walls |= EAST;
-    }
+    
+for (unsigned int y = 0; y < HEIGHT; y++)
+{
+    cells[0][y].walls |= WEST;
+    cells[0][y].known |= WEST;
+    cells[WIDTH - 1][y].walls |= EAST;
+    cells[WIDTH - 1][y].known |= EAST;
+}
 
-    for (unsigned int x = 0; x < WIDTH; x++)
-    {
-        cells[x][0].walls |= SOUTH;
-        cells[x][HEIGHT - 1].walls |= NORTH;
-    }
+for (unsigned int x = 0; x < WIDTH; x++)
+{
+    cells[x][0].walls |= SOUTH;
+    cells[x][0].known |= SOUTH;
+    cells[x][HEIGHT - 1].walls |= NORTH;
+    cells[x][HEIGHT - 1].known |= NORTH;
+}
 }
