@@ -1,7 +1,16 @@
+/**
+ * @file Logger.cpp
+ *
+ * @brief Implementation of the Logger service.
+ *
+ * Buffers "[LEVEL] message\n" records at logging time and transmits
+ * whole records in packets built by update(), retrying automatically
+ * after failed sends.
+ */
+
 #include "Logger.h"
 
-// #include <utility>
-
+#include <utility>
 #include <Arduino.h>
 
 
@@ -12,25 +21,27 @@ void Logger::setLevel(const LogLevel level)
 
 void Logger::setUpdateInterval(const uint32_t ms)
 {
-    if (ms > 0)
-        m_updateInterval = ms;
+    if (ms == 0)
+        return;
+
+    m_updateInterval = ms;
 }
 
 void Logger::setMaxPacketSize(const uint16_t bytes)
 {
-    // Clamp to the hard limit: the configured value can never make
-    // Logger exceed MAX_PACKET_SIZE. Zero restores the default.
-    if (bytes == 0 || bytes > MAX_PACKET_SIZE)
+    if (bytes == 0)
+    {
         m_maxPacketSize = MAX_PACKET_SIZE;
-    else
+        return;
+    }
+
+    if (bytes >= MAX_RECORD_SIZE && bytes <= MAX_PACKET_SIZE)
         m_maxPacketSize = bytes;
 }
 
 void Logger::flush()
 {
-    // Only meaningful with buffered records: the request stays active
-    // until the entire buffer has been transmitted (cleared by
-    // transmit() after the buffer drains).
+    // Keep the request active until all buffered records are transmitted.
     if (!m_buffer.empty())
         m_flushRequested = true;
 }
@@ -98,8 +109,7 @@ bool Logger::log(const LogLevel level, const std::string& message)
 // update(), which has already checked every transmission condition.
 void Logger::transmit()
 {
-    // Never transmit without a configured destination or without
-    // anything to send (empty packets are never sent).
+    // Skip transmission when the destination is unavailable or the buffer is empty.
     if (m_destinationPort == 0 || m_buffer.empty())
         return;
 
@@ -135,20 +145,17 @@ void Logger::transmit()
 
     const int endResult = m_udp.endPacket();
 
-    // The buffer is only modified when the complete send operation
-    // succeeded (full packet written and endPacket() confirmed), so a
-    // failure keeps every record intact for the next update() call.
+    // Preserve the buffer unless the entire packet was written
+    // and endPacket() confirmed success.
     if (written != packet.size() || endResult != 1)
         return;
 
-    // Success: drop the transmitted records.
     for (size_t i = 0; i < recordCount; i++)
     {
         m_bufferedSize -= m_buffer.front().size();
         m_buffer.pop_front();
     }
 
-    // Timestamp the successful transmission immediately.
     m_lastTransmit = millis();
 
     // A flush request stays active until the entire buffer is empty, so
@@ -158,10 +165,19 @@ void Logger::transmit()
         m_flushRequested = false;
 }
 
+bool Logger::begin(const IPAddress& destination, const uint16_t port)
+{
+    if (destination == IPAddress(0, 0, 0, 0) || port == 0)
+        return false;
+
+    m_destinationIP = destination;
+    m_destinationPort = port;
+
+    return true;
+}
+
 void Logger::update()
 {
-    // Transmission requires a configured destination and buffered data.
-    // Empty packets are never sent.
     if (m_destinationPort == 0 || m_buffer.empty())
         return;
 
@@ -178,11 +194,4 @@ void Logger::update()
         return;
 
     transmit();
-}
-
-
-void Logger::begin(const IPAddress& destination, const uint16_t port)
-{
-    m_destinationIP = destination;
-    m_destinationPort = port;
 }

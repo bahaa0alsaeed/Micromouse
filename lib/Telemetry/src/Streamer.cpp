@@ -1,43 +1,65 @@
-#include "Streamer.h"
+/**
+ * @file Streamer.cpp
+ *
+ * @brief Implementation of the Streamer service.
+ *
+ * Builds comma-separated name=value packets and transmits them over
+ * UDP on the two independent fast/slow update intervals.
+ */
 
+#include "Streamer.h"
 #include <Arduino.h>
 
 
 void Streamer::setFastInterval(const uint32_t ms)
 {
     if (ms > 0)
-        fastInterval = ms;
+        m_fastInterval = ms;
 }
 
 void Streamer::setSlowInterval(const uint32_t ms)
 {
     if (ms > 0)
-        slowInterval = ms;
+        m_slowInterval = ms;
 }
 
-void Streamer::addFast(const std::string& name, const float* variable)
+// TODO: Ignore , = \n \r from names.
+bool Streamer::addFast(const std::string& name, const float* variable)
 {
-    fastVariables.push_back({name, variable});
+    if (variable == nullptr || name.empty())
+        return false;
+
+    m_fastVariables.push_back({name, variable});
+    return true;
 }
 
-void Streamer::addSlow(const std::string& name, const float* variable)
+bool Streamer::addSlow(const std::string& name, const float* variable)
 {
-    slowVariables.push_back({name, variable});
+    if (variable == nullptr || name.empty())
+        return false;
+
+    m_slowVariables.push_back({name, variable});
+    return true;
 }
 
-// Compatibility aliases for the original Logger API.
 
-void Streamer::begin(const IPAddress& destination, const uint16_t port)
+bool Streamer::begin(const IPAddress& destination, const uint16_t port)
 {
-    destinationIP = destination;
-    destinationPort = port;
+    if (destination == IPAddress(0, 0, 0, 0) || port == 0)
+        return false;
+
+    m_destinationIP = destination;
+    m_destinationPort = port;
+
+    return true;
 }
 
-void Streamer::sendPacket(const std::vector<Variable>& variables)
+bool Streamer::sendPacket(const std::vector<Variable>& variables)
 {
     if (variables.empty())
-        return;
+        return false;
 
+    // Build "name=value,name=value,..." terminated by a newline.
     std::string message;
 
     for (size_t i = 0; i < variables.size(); i++)
@@ -52,31 +74,37 @@ void Streamer::sendPacket(const std::vector<Variable>& variables)
 
     message += '\n';
 
-    bool beginResult = udp.beginPacket(destinationIP, destinationPort);
+    if (!m_udp.beginPacket(m_destinationIP, m_destinationPort))
+        return false;
 
-    size_t written = udp.write(reinterpret_cast<const uint8_t*>(message.data()), message.size());
+    const size_t written = m_udp.write(
+        reinterpret_cast<const uint8_t*>(message.data()),
+        message.size()
+        );
 
-    bool endResult = udp.endPacket();
+    const int endResult = m_udp.endPacket();
+
+    return written == message.size() && endResult == 1;
 
 }
 
 void Streamer::update()
 {
-    if (destinationPort == 0)
+    if (m_destinationPort == 0)
         return;
 
     const uint32_t now = millis();
 
     // Send the packet when it's time comes.
-    if (!fastVariables.empty() && now - lastFastUpdate >= fastInterval)
+    if (!m_fastVariables.empty() && now - m_lastFastTransmit >= m_fastInterval)
     {
-        lastFastUpdate = now;
-        sendPacket(fastVariables);
+        if(sendPacket(m_fastVariables))
+            m_lastFastTransmit = now;
     }
 
-    if (!slowVariables.empty() && now - lastSlowUpdate >= slowInterval)
+    if (!m_slowVariables.empty() && now - m_lastSlowTransmit >= m_slowInterval)
     {
-        lastSlowUpdate = now;
-        sendPacket(slowVariables);
+        if (sendPacket(m_slowVariables))
+            m_lastSlowTransmit = now;
     }
 }

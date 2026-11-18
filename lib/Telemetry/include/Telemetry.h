@@ -1,3 +1,17 @@
+/**
+ * @file Telemetry.h
+ *
+ * @brief Unified entry point for the telemetry stack (streaming,
+ * commands and logging over UDP).
+ *
+ * The library is split into the independent services Streamer,
+ * Commands and Logger, all owned by the Telemetry class. Including
+ * this header exposes the complete public API, so normal application
+ * code only needs:
+ *
+ *     #include <Telemetry.h>
+ */
+
 #pragma once
 
 #include "Streamer.h"
@@ -5,41 +19,42 @@
 #include "Logger.h"
 
 /**
- * Central configuration of the unified Telemetry library.
+ * @brief Configuration parameters for the Telemetry library.
  *
- * Values are plain data: the library performs no dynamic allocation
- * and takes no ownership beyond storing the pointers/ports until
- * Telemetry::begin() is called.
+ * This structure contains the network credentials and UDP endpoints
+ * used to initialize the telemetry services.
+ *
+ * The library stores the provided string pointers without copying
+ * their contents. The pointed-to strings must remain valid for as
+ * long as the Telemetry instance may use them.
  */
 struct TelemetryConfig
 {
-    // Wi-Fi network to connect to.
+    // Wi-Fi network credentials.
     const char* ssid = nullptr;
     const char* password = nullptr;
 
-    // Destination host for outgoing value packets, as a dotted-quad
-    // string such as "192.168.1.100".
+    // Destination IPv4 address for outgoing UDP packets.
     const char* host = nullptr;
 
-    // UDP port used for outgoing value packets.
+    // UDP destination port for streamed values.
     uint16_t streamerPort = 0;
 
-    // UDP port that receives incoming commands.
+    // UDP local port for receiving commands.
     uint16_t commandPort = 0;
 
-    // UDP port for outgoing log packets. Zero falls back to
-    // telemetryPort so both streams share one endpoint by default.
+    // UDP destination port for outgoing log messages.
     uint16_t logPort = 0;
 };
 
 /**
- * Unified entry point for the telemetry stack.
+ * @brief Unified entry point for the telemetry stack.
  *
  * The library is split into independent services:
  *
- * - stream    streams registered variables over UDP (formerly Logger).
- * - commands receives command frames over UDP (formerly CommandReceiver).
- * - logs     buffers textual log messages and sends them over UDP.
+ * - stream: Streams registered variables over UDP.
+ * - commands: Receives and dispatches incoming command frames.
+ * - logs: Buffers and transmits textual log messages over UDP.
  *
  * Telemetry is the sole owner of the Wi-Fi connection: begin() starts
  * the connection and update() keeps it alive and reconnects when it
@@ -47,25 +62,32 @@ struct TelemetryConfig
  * touch Wi-Fi themselves; they are ticked by update() only while the
  * connection is up.
  *
- * Including this header exposes the complete public API, so normal
- * application code only needs:
- *
- *     #include <Telemetry.h>
- *
  * Intended usage:
  *
- *     Telemetry telemetry;
+ * Telemetry telemetry;
  *
- *     void setup() {
- *         telemetry.begin();
- *         telemetry.stream.addFast("speed", &speed);
- *         telemetry.commands.on("set_speed", speedHandler);
- *         telemetry.logs.info("Robot initialized");
- *     }
+ * void setup()
+ * {
+ *     static const TelemetryConfig config{
+ *         .ssid = "MyNetwork",
+ *         .password = "MyPassword",
+ *         .host = "192.168.1.100",
+ *         .streamerPort = 9000,
+ *         .commandPort = 9001,
+ *         .logPort = 9002
+ *     };
  *
- *     void loop() {
- *         telemetry.update();
- *     }
+ *     telemetry.begin(config);
+ *
+ *     telemetry.stream.addFast("speed", &speed);
+ *     telemetry.commands.on("set_speed", speedHandler);
+ *     telemetry.logs.info("Robot initialized");
+ * }
+ *
+ * void loop()
+ * {
+ *     telemetry.update();
+ * }
  */
 class Telemetry
 {
@@ -78,34 +100,52 @@ public:
 
 
     /**
-     * Initializes the library from an explicit configuration,
-     * which takes priority over the environment macros.
+     * @brief Initializes the telemetry services using the provided
+     *        configuration.
+     *
+     * Validates the destination IP address and UDP ports, configures all
+     * telemetry services, and starts a non-blocking Wi-Fi connection attempt.
+     *
+     * Initialization stops if the destination address or any service
+     * configuration is invalid.
+     *
+     * A successful return indicates that all services were successfully
+     * initialized and the Wi-Fi connection attempt was started, not that
+     * the Wi-Fi connection has been established.
+     *
+     * @param config Network credentials and UDP endpoint configuration.
+     * @return true if all services were successfully initialized,
+     *         false if the destination IP address or any service
+     *         configuration is invalid.
      */
     bool begin(const TelemetryConfig& config);
 
     /**
-     * Keeps the Wi-Fi connection alive and ticks every service.
-     * Call repeatedly from loop().
+     * @brief Maintains the Wi-Fi connection and updates all services.
+     *
+     * While disconnected, periodically retries the Wi-Fi connection
+     * and skips all service updates. Call repeatedly from loop().
      */
     void update();
 
+    // Streams registered variables over UDP.
     Streamer stream;
+    // Receives command frames over UDP.
     Commands commands;
+    // Buffers textual log messages and sends them over UDP.
     Logger logs;
 
 private:
-    bool initialized = false;
+    // True after successful initialization.
+    bool m_initialized = false;
 
-    // Wi-Fi state. Telemetry is the sole owner of the connection; the
-    // services never touch Wi-Fi themselves.
-    const char* wifiSsid = nullptr;
-    const char* wifiPassword = nullptr;
+    // Credentials used for Wi-Fi connection and reconnection.
+    const char* m_wifiSsid = nullptr;
+    const char* m_wifiPassword = nullptr;
 
-    // Time in ms between reconnect attempts. A single attempt is cheap and
-    // non-blocking, but the interval avoids re-issuing WiFi.begin() in every
-    // loop iteration while the AP is unreachable.
-    uint32_t reconnectInterval = 10000;
+    // Minimum interval between Wi-Fi connection attempts, in milliseconds.
+    uint32_t m_reconnectInterval = 10000;
 
-    uint32_t lastWifiAttempt = 0;
+    // Timestamp of the last Wi-Fi connection attempt, in milliseconds.
+    uint32_t m_lastWifiAttempt = 0;
 };
-

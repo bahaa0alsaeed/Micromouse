@@ -1,6 +1,15 @@
+/**
+ * @file Logger.h
+ *
+ * @brief Buffers textual log messages and transmits them over UDP.
+ *
+ * Part of the Telemetry stack; applications interact with this service
+ * through Telemetry::logs. Messages are buffered at logging time and
+ * transmitted in packets built by update().
+ */
+
 #pragma once
 
-#include <cstddef>
 #include <cstdint>
 #include <deque>
 #include <string>
@@ -9,7 +18,7 @@
 
 
 /**
- * Severity levels for log messages.
+ * @brief Severity levels for log messages.
  *
  * The levels form the conventional hierarchy used for filtering:
  * setting the level to X accepts messages of level X and of every
@@ -17,16 +26,16 @@
  */
 enum class LogLevel
 {
-    Off = 0,    // Rejects every message.
-    Error,      // Accepts error only.
-    Warning,    // Accepts error + warning.
-    Info,       // Accepts error + warning + info (default).
-    Debug       // Accepts everything.
+    Off = 0,        ///< Rejects all messages.
+    Error = 1,      ///< Accepts error messages only.
+    Warning = 2,    ///< Accepts warnings and errors.
+    Info = 3,       ///< Accepts info, warnings and errors (default).
+    Debug = 4       ///< Accepts all messages.
 };
 
 
 /**
- * Collects textual log messages and transmits them over UDP.
+ * @brief Collects textual log messages and transmits them over UDP.
  *
  * Messages are logged through info(), warning(), error() and debug().
  * Each accepted message is stored in a FIFO buffer as a complete record
@@ -48,65 +57,92 @@ class Logger
 public:
 
     /**
-     * Sets the filtering level.
+     * @brief Sets the minimum severity level for accepted messages.
      *
-     * Messages less severe than the configured level are rejected by the
-     * logging functions. LogLevel::Off rejects everything.
+     * Messages with the selected severity or higher severity are accepted.
+     * LogLevel::Off disables all logging.
+     *
+     * @param level Minimum accepted severity level. Default: LogLevel::Info.
      */
     void setLevel(LogLevel level);
 
     /**
-     * Sets the transmission interval in milliseconds.
+     * @brief Sets the minimum time interval between transmissions.
      *
-     * When buffered data is smaller than SEND_THRESHOLD, update()
-     * transmits it once this interval has elapsed since the last
-     * successful transmission. Zero is ignored. Default: 100 ms.
+     * When the buffered size is below SEND_THRESHOLD, transmission
+     * is triggered after this interval has elapsed since the last
+     * successful transmission. Reaching SEND_THRESHOLD triggers
+     * transmission independently of this interval.
+     *
+     * @param ms Transmission interval in milliseconds. Zero is ignored.
+     *           Default: 100 ms.
      */
     void setUpdateInterval(uint32_t ms);
 
     /**
-     * Sets the maximum UDP payload size update() may build, in bytes.
+     * @brief Sets the maximum UDP payload size, in bytes.
      *
-     * The value is clamped to the hard limit MAX_PACKET_SIZE (1200) and
-     * can never make Logger exceed it. Zero resets it to the default.
+     * The value must be between MAX_RECORD_SIZE and MAX_PACKET_SIZE.
+     * Values outside this range are ignored. Zero restores the default
+     * size (MAX_PACKET_SIZE).
+     *
+     * @param bytes Maximum UDP payload size in bytes.
      */
     void setMaxPacketSize(uint16_t bytes);
 
     /**
-     * Requests immediate transmission on the next update() call,
+     * @brief Requests immediate transmission on the next update() call,
      * regardless of the interval and the buffered size.
      *
      * The request stays active until the entire buffer has been
      * transmitted, so remaining records are sent on subsequent
      * update() calls without waiting for the interval.
      *
-     * Still at most one packet per update() call, and still only
-     * inside update(); calling this never touches the network directly.
+     * At most one packet is transmitted per update() call.
+     * Transmission still occurs exclusively inside update();
+     * calling flush() never accesses the network directly.
      */
     void flush();
 
     /**
-     * Buffers an informational message ("[INFO] ...").
+     * @brief Buffers an informational message.
      *
-     * Returns true when the message was accepted and stored in the
-     * buffer, false when it was rejected by the configured level, when
-     * the formatted record exceeds MAX_RECORD_SIZE, or when storing it
-     * would exceed BUFFER_CAPACITY. True does not mean transmitted.
+     * The message is prefixed with "[INFO] " and terminated with a
+     * newline before being stored.
+     *
+     * @param message Message text, without the level prefix.
+     * @return true if the message was accepted and buffered.
+     *         Returns false if it was filtered out, exceeds
+     *         MAX_RECORD_SIZE after formatting, or would exceed
+     *         BUFFER_CAPACITY. A successful return does not imply
+     *         transmission.
      */
     bool info(const std::string& message);
 
     /**
-     * Buffers a warning message ("[WARNING] ..."). See info().
+     * @brief Buffers a warning message with the "[WARNING]" prefix.
+     *
+     * @param message Message text, without the level prefix.
+     * @return true if the message was accepted and buffered; false
+     *         if it was filtered out or could not fit in the buffer.
      */
     bool warning(const std::string& message);
 
     /**
-     * Buffers an error message ("[ERROR] ..."). See info().
+     * @brief Buffers an error message with the "[ERROR]" prefix.
+     *
+     * @param message Message text, without the level prefix.
+     * @return true if the message was accepted and buffered; false
+     *         if it was filtered out or could not fit in the buffer.
      */
     bool error(const std::string& message);
 
     /**
-     * Buffers a debug message ("[DEBUG] ..."). See info().
+     * @brief Buffers a debug message with the "[DEBUG]" prefix.
+     *
+     * @param message Message text, without the level prefix.
+     * @return true if the message was accepted and buffered; false
+     *         if it was filtered out or could not fit in the buffer.
      */
     bool debug(const std::string& message);
 
@@ -136,54 +172,85 @@ private:
     // included. Larger records are rejected entirely, never truncated.
     static constexpr size_t MAX_RECORD_SIZE = 1100;
 
-    // Formats, filters and buffers a message. Shared by the four
-    // public logging functions.
-    bool log(LogLevel level, const std::string& message);
-
-    // Sends one packet built from whole buffered records. All
-    // transmission conditions are checked by update(); this only sends.
-    void transmit();
-
-    // TODO: Replace deque with Circular Buffer.
-    // FIFO log buffer. Oldest records at the front, transmitted first.
+    // TODO: Replace with a fixed-capacity circular buffer to reduce
+    /// dynamic allocation and improve memory predictability.
     std::deque<std::string> m_buffer;
 
     // Total size of the buffered records, prefix and newline included.
     size_t m_bufferedSize = 0;
 
+    // Minimum accepted log severity.
     LogLevel m_level = LogLevel::Info;
-
-    IPAddress m_destinationIP;
-    uint16_t m_destinationPort = 0;    // 0 means not configured: nothing is sent.
-
-    uint32_t m_updateInterval = 100;
-    uint32_t m_lastTransmit = 0;
-
+    // Maximum UDP payload size update() may build, in bytes.
     uint16_t m_maxPacketSize = MAX_PACKET_SIZE;
-    bool m_flushRequested = false;
+    // Transmission interval in milliseconds.
+    uint32_t m_updateInterval = 100;
 
+    // Destination address for outgoing log packets.
+    IPAddress m_destinationIP;
+    // Destination UDP port. Zero means not configured.
+    uint16_t m_destinationPort = 0;
+    // UDP socket used to transmit log packets.
     WiFiUDP m_udp;
 
-
-    // Called once by Telemetry::begin() with the resolved destination.
-    void begin(const IPAddress& destination, uint16_t port);
+    // millis() timestamp of the last successful transmission.
+    uint32_t m_lastTransmit = 0;
+    // Set by flush(); cleared by transmit() once the buffer drains.
+    bool m_flushRequested = false;
 
 
     /**
-     * Transmits buffered messages when transmission is due.
+     * @brief Formats, filters and buffers a message. Shared by the four
+     * public logging functions.
+     *
+     * @param level Severity of the message.
+     * @param message Message text, without any level prefix.
+     * @return true when the formatted record was accepted and stored
+     *         in the buffer, false when it was rejected by the
+     *         configured level, when it exceeds MAX_RECORD_SIZE, or
+     *         when storing it would exceed BUFFER_CAPACITY.
+     */
+    bool log(LogLevel level, const std::string& message);
+
+    /**
+     * @brief Builds and sends one UDP packet from buffered records.
+     *
+     * The transmission scheduling conditions are handled by update().
+     * This function handles packet construction and transmission.
+     *
+     * Records are removed from the buffer only after the complete UDP
+     * send operation reports success. Failed sends leave the records
+     * buffered for subsequent retry attempts.
+     */
+    void transmit();
+
+    /**
+     * @brief Configures the destination for outgoing UDP log messages.
+     *
+     * @param destination Destination IP address. Must not be 0.0.0.0.
+     * @param port Destination UDP port. Must not be zero.
+     *
+     * @return true if the destination was successfully configured,
+     *         false if the IP address or port is invalid.
+     */
+    bool begin(const IPAddress& destination, uint16_t port);
+
+
+    /**
+     * @brief Transmits buffered messages when transmission is due.
      *
      * Transmission is due when the buffered size reaches
      * SEND_THRESHOLD, when the configured interval has elapsed since
      * the last successful transmission, or when flush() was called.
      *
-     * At most ONE packet is sent per call. The packet contains as many
+     * At most one packet is sent per call. The packet contains as many
      * complete records from the front of the FIFO as fit; records are
      * never split or truncated, and leftovers stay buffered for the
      * next call. Records are removed from the buffer only after the
      * UDP send reports success, so failed transmissions are retried
      * automatically. Never sends an empty packet.
      *
-     * Call repeatedly from the main loop (Telemetry::update() does).
+     * Called periodically by Telemetry::update().
      */
     void update(); // TODO: Send multiple packages at once.
 };

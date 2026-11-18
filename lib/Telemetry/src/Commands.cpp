@@ -1,100 +1,11 @@
-// #include "Commands.h"
-//
-// #include "CommandParser.h"
-//
-// namespace
-// {
-// // Packets larger than this cannot form a valid command frame (a command
-// // name plus at most Command::MAX_VALUES numeric values). Oversized packets
-// // are dropped before any receive memory is touched so that a flood of
-// // large datagrams cannot pressure the heap.
-// constexpr size_t MAX_COMMAND_PACKET_SIZE = 128;
-// }
-//
-// void Commands::on(const std::string& name, CommandHandler handler)
-// {
-//     handlers.push_back({name, std::move(handler)});
-// }
-//
-// void Commands::on(const std::string& name, void (*handler)(const Command&))
-// {
-//     // Convert the function pointer to the common handler type so both
-//     // registration overloads use the same underlying implementation.
-//     on(name, CommandHandler(handler));
-// }
-//
-// void Commands::begin(const uint16_t port)
-// {
-//     listenPort = port;
-//     bool result = udp.begin(port);
-//     Serial.printf("[Commands] UDP begin: %s\n",
-//                   result ? "OK" : "FAILED");
-// }
-//
-// void Commands::update()
-// {
-//     // A port of zero indicates that the receiver has not been initialized.
-//     if (listenPort == 0)
-//         return;
-//
-//
-//     int packetSize = udp.parsePacket();
-//
-//
-//     // No UDP packet is currently waiting.
-//     if (packetSize <= 0)
-//         return;
-//
-//     // Drop packets that cannot possibly contain a valid command frame
-//     // before resizing the receive buffer, keeping memory use bounded.
-//     if (packetSize > static_cast<int>(MAX_COMMAND_PACKET_SIZE))
-//     {
-//         Serial.printf("[Commands] Dropped oversized packet (%d bytes)\n",
-//                       packetSize);
-//         return;
-//     }
-//
-//     // Resize the reusable receive buffer to exactly match the incoming
-//     // packet before reading its contents.
-//     rxBuffer.assign(static_cast<size_t>(packetSize), '\0');
-//
-//     const int len = udp.read(reinterpret_cast<uint8_t*>(&rxBuffer[0]), packetSize);
-//
-//     // Ignore the frame if no data was actually read.
-//     if (len <= 0)
-//         return;
-//
-//     // Keep only the bytes that were successfully received.
-//     rxBuffer.resize(static_cast<size_t>(len));
-//
-//     parseAndDispatch(rxBuffer);
-// }
-//
-// void Commands::parseAndDispatch(const std::string& frame) const
-// {
-//     Command cmd;
-//
-//     // Parse the complete frame first. The parser either accepts every
-//     // field or rejects the frame, so a partially parsed command can
-//     // never reach a handler.
-//     if (!CommandParser::parse(frame,
-//                               cmd.name,
-//                               cmd.values.data(),
-//                               Command::MAX_VALUES,
-//                               cmd.valueCount))
-//     {
-//         return;
-//     }
-//
-//     for (const auto& entry : handlers)
-//     {
-//         if (entry.name == cmd.name)
-//             entry.handler(cmd);
-//     }
-// }
-
-
-
+/**
+ * @file Commands.cpp
+ *
+ * @brief Implementation of the Commands service.
+ *
+ * Parses incoming "name,value1,..." frames completely before
+ * dispatching them; malformed frames are discarded, never aborting.
+ */
 
 #include "Commands.h"
 
@@ -106,9 +17,25 @@
 
 namespace
 {
+// Maximum size of a received UDP frame that will be parsed; larger
+// frames are drained and discarded.
 constexpr size_t MAX_COMMAND_PACKET_SIZE = 128;
 
-// Parse one decimal floating-point field.
+/**
+ * @brief Parse one decimal floating-point field.
+ *
+ * Leading and trailing spaces/tabs are trimmed. Only plain decimal
+ * notation is accepted: "nan", "inf" and hexadecimal forms are
+ * rejected, as is any value whose magnitude exceeds the range of
+ * float or that does not parse completely.
+ *
+ * @param begin First character of the field.
+ * @param end One past the last character of the field.
+ * @param result Receives the parsed value on success; untouched on
+ *               failure.
+ * @return true when the field holds a finite float value, false
+ *         otherwise.
+ */
 bool parseField(const char* begin, const char* end, float& result)
 {
     while (begin < end && (*begin == ' ' || *begin == '\t'))
@@ -135,9 +62,12 @@ bool parseField(const char* begin, const char* end, float& result)
     char* parseEnd = nullptr;
     const double value = std::strtod(begin, &parseEnd);
 
+    // Reject partial parses, range errors and non-finite results.
     if (parseEnd != end || errno == ERANGE || !std::isfinite(value))
         return false;
 
+    // Guard the float narrowing: the double parsed fine but may still
+    // overflow when cast to float.
     if (std::abs(value) > std::numeric_limits<float>::max())
         return false;
 
@@ -145,9 +75,25 @@ bool parseField(const char* begin, const char* end, float& result)
     return true;
 }
 
-// Parse the complete command before dispatching it.
+/**
+ * @brief Parse the complete command before dispatching it.
+ *
+ * Trailing CR/LF characters are ignored. The text before the first
+ * comma (or the whole frame when no comma is present) becomes the
+ * command name; the remaining comma-separated fields are parsed as
+ * numeric values. The frame is rejected as a whole when it is empty,
+ * when the name is empty, when any value field does not parse, or
+ * when it carries more than Command::MAX_VALUES values.
+ *
+ * @param frame Raw received frame, possibly with trailing newlines.
+ * @param cmd Receives the parsed name, values and valueCount on
+ *            success.
+ * @return true when the frame parsed completely, false when it is
+ *         malformed.
+ */
 bool parseCommand(const std::string& frame, Command& cmd)
 {
+    // Ignore trailing CR/LF characters.
     size_t length = frame.size();
 
     while (length > 0 &&
@@ -160,11 +106,14 @@ bool parseCommand(const std::string& frame, Command& cmd)
     const char* data = frame.data();
     const size_t firstComma = frame.find(',', 0);
 
+    // The name ends at the first comma inside the frame, or at the
+    // frame end when there is no comma (or it lies beyond the frame).
     const size_t nameEnd =
         firstComma == std::string::npos || firstComma >= length
             ? length
             : firstComma;
 
+    // An empty name rejects the whole frame.
     if (nameEnd == 0)
         return false;
 
@@ -175,6 +124,7 @@ bool parseCommand(const std::string& frame, Command& cmd)
     if (nameEnd == length)
         return true;
 
+    // Parse the comma-separated value fields one by one.
     size_t start = nameEnd + 1;
 
     while (start <= length)
@@ -184,6 +134,7 @@ bool parseCommand(const std::string& frame, Command& cmd)
         while (end < length && data[end] != ',')
             ++end;
 
+        // More values than Command::MAX_VALUES reject the frame.
         if (cmd.valueCount >= Command::MAX_VALUES)
             return false;
 
@@ -203,62 +154,85 @@ bool parseCommand(const std::string& frame, Command& cmd)
 }
 }
 
-void Commands::on(const std::string& name, CommandHandler handler)
+
+bool Commands::on(const std::string& name, CommandHandler handler)
 {
-    handlers.push_back({name, std::move(handler)});
-}
-
-void Commands::on(const std::string& name, void (*handler)(const Command&))
-{
-    on(name, CommandHandler(handler));
-}
-
-void Commands::begin(const uint16_t port)
-{
-    listenPort = port;
-    udp.begin(port);
-}
-
-void Commands::update()
-{
-    if (listenPort == 0)
-        return;
-
-    const int packetSize = udp.parsePacket();
-
-    if (packetSize <= 0)
-        return;
-
-    if (packetSize > static_cast<int>(MAX_COMMAND_PACKET_SIZE))
+    if (name.empty() ||
+        name.find_first_of(",=\n\r") != std::string::npos ||
+        !handler)
     {
-        while (udp.available())
-            udp.read();
-
-        return;
+        return false;
     }
 
-    rxBuffer.resize(static_cast<size_t>(packetSize));
+    m_handlers.push_back({name, std::move(handler)});
+    return true;
+}
 
-    const int len = udp.read(
-        reinterpret_cast<uint8_t*>(rxBuffer.data()),
-        packetSize);
+bool Commands::on(const std::string& name, void (*handler)(const Command&))
+{
+    if (handler == nullptr)
+        return false;
 
-    if (len != packetSize)
-        return;
+    return on(name, CommandHandler(handler));
+}
 
-    parseAndDispatch(rxBuffer);
+bool Commands::begin(const uint16_t port)
+{
+    if (port == 0)
+        return false;
+
+    if (!m_udp.begin(port))
+        return false;
+
+    m_listenPort = port;
+    return true;
 }
 
 void Commands::parseAndDispatch(const std::string& frame) const
 {
     Command cmd;
 
+    // Malformed frames are silently discarded: no handler is invoked.
     if (!parseCommand(frame, cmd))
         return;
 
-    for (const auto& entry : handlers)
+    // Every handler registered under the command name is invoked, in
+    // registration order.
+    for (const auto& entry : m_handlers)
     {
         if (entry.name == cmd.name)
             entry.handler(cmd);
     }
+}
+
+void Commands::update()
+{
+    if (m_listenPort == 0)
+        return;
+
+    const int packetSize = m_udp.parsePacket();
+
+    if (packetSize <= 0)
+        return;
+
+    // Frames larger than the maximum are drained and discarded.
+    if (packetSize > static_cast<int>(MAX_COMMAND_PACKET_SIZE))
+    {
+        while (m_udp.available())
+            m_udp.read();
+
+        return;
+    }
+
+    m_rxBuffer.resize(static_cast<size_t>(packetSize));
+
+    const int len = m_udp.read(
+        reinterpret_cast<uint8_t*>(m_rxBuffer.data()),
+        packetSize);
+
+    // An incomplete read discards the frame without dispatching.
+    if (len != packetSize)
+        return;
+
+    parseAndDispatch(m_rxBuffer);
 }
