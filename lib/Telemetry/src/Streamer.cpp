@@ -23,11 +23,14 @@ void Streamer::setSlowInterval(const uint32_t ms)
         m_slowInterval = ms;
 }
 
-// TODO: Ignore , = \n \r from names.
 bool Streamer::addFast(const std::string& name, const float* variable)
 {
-    if (variable == nullptr || name.empty())
+    if (variable == nullptr ||
+        name.empty() ||
+        name.find_first_of(",=\n\r") != std::string::npos)
+    {
         return false;
+    }
 
     m_fastVariables.push_back({name, variable});
     return true;
@@ -35,8 +38,12 @@ bool Streamer::addFast(const std::string& name, const float* variable)
 
 bool Streamer::addSlow(const std::string& name, const float* variable)
 {
-    if (variable == nullptr || name.empty())
+    if (variable == nullptr ||
+        name.empty() ||
+        name.find_first_of(",=\n\r") != std::string::npos)
+    {
         return false;
+    }
 
     m_slowVariables.push_back({name, variable});
     return true;

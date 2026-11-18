@@ -70,14 +70,16 @@ public:
      *
      * Duplicate names are allowed.
      *
-     * @param name Non-empty name used to identify the streamed value.
+     * @param name Name used to identify the streamed value. Must not be
+     *             empty or contain ',', '=', '\n', or '\r'.
      * @param variable Pointer to the value to stream. Must not be null.
      * @return true if the variable was registered; false if the name is
-     *         empty or the pointer is null.
+     *         invalid or the pointer is null.
      */
     bool addFast(const std::string& name, const float* variable);
+
     /**
-     * @brief Registers a variable in the slow update group.
+     * @brief Registers a variable in the  update group.
      *
      * The variable is referenced by pointer; its current value is read
      * whenever a packet is constructed. The pointed-to value must remain
@@ -85,10 +87,11 @@ public:
      *
      * Duplicate names are allowed.
      *
-     * @param name Non-empty name used to identify the streamed value.
+     * @param name Name used to identify the streamed value. Must not be
+     *             empty or contain ',', '=', '\n', or '\r'.
      * @param variable Pointer to the value to stream. Must not be null.
      * @return true if the variable was registered; false if the name is
-     *         empty or the pointer is null.
+     *         invalid or the pointer is null.
      */
     bool addSlow(const std::string& name, const float* variable);
 
