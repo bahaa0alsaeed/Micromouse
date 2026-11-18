@@ -19,6 +19,14 @@ enum class PIDError
     NumericalError
 };
 
+// Contains the output and status of a compute() call.
+struct PIDResult
+{
+    float output;
+    bool success;
+    PIDError error;
+};
+
 struct PIDConfig
 {
     // PID controller gains.
@@ -29,7 +37,7 @@ struct PIDConfig
     // Derivative filter coefficient (1/seconds).
     float N = 0.0f;
 
-    // Output limits must be configured before begin().
+    // Output limits must be explicitly configured.
     float outputMin = std::numeric_limits<float>::quiet_NaN();
     float outputMax = std::numeric_limits<float>::quiet_NaN();
 
@@ -42,41 +50,60 @@ class PID
 {
     PIDConfig config = {};
 
-    // Internal state preserved between compute() calls.
+    // State saved only after a successful compute() call.
     float previousMeasurement = 0.0f;
     float integral = 0.0f;
     float previousDerivative = 0.0f;
     float output = 0.0f;
 
-    // Controller initialization and validation state.
     bool initialized = false;
     bool configured = false;
 
-    // Stores the most recent controller error.
     PIDError lastError = PIDError::NotInitialized;
 
-    // Handle runtime errors and reset control history.
-    float fail(PIDError error);
+    // Configuration and input validation.
+    static PIDError validateConfig(const PIDConfig& candidate);
+
+    static PIDError validateInputs(float setpoint,
+                                   float measurement,
+                                   float dt,
+                                   float feedforward);
+
+    // Calculate the next values without changing controller state.
+    PIDError calculateDerivative(float measurement,
+                                 float dt,
+                                 float& nextDerivative) const;
+
+    PIDError calculateControlOutput(float error,
+                                    float derivative,
+                                    float dt,
+                                    float feedforward,
+                                    float& nextIntegral,
+                                    float& nextOutput) const;
+
+    // Report an error without resetting controller history.
+    PIDResult fail(PIDError error);
 
 public:
     explicit PID(const PIDConfig& config);
 
-    // Validate the controller configuration.
+    // Validate and initialize the controller.
     bool begin();
 
-    // Calculate the PID output with optional external feedforward.
-    float compute(float setpoint, float measurement,
-                  float dt, float feedforward = 0.0f);
+    // Calculate the output with optional external feedforward.
+    PIDResult compute(float setpoint,
+                      float measurement,
+                      float dt,
+                      float feedforward = 0.0f);
 
-    // Replace the controller parameters.
-    void changeParameters(const PIDConfig& newConfig);
+    // Apply valid parameters without requiring another begin().
+    bool changeParameters(const PIDConfig& newConfig);
 
-    // Reset the controller's internal state.
+    // Clear the controller's internal state.
     void reset();
 
-    // Retrieve the latest error code.
+    // Read the most recent error.
     PIDError getLastError() const;
 
-    // Retrieve a readable error message.
     const char* getErrorMessage() const;
 };
