@@ -19,152 +19,149 @@ PID::PID(const PIDConfig& config)
     this->config = config;
 }
 
-bool PID::begin()
+// ------------------------------------------------------------
+// Configuration Validation
+// ------------------------------------------------------------
+
+PIDError PID::validateConfig(const PIDConfig& candidate)
 {
-    configured = false;
-    reset();
-
-    // Validate PID gains.
-    if (!std::isfinite(config.kp) ||
-        !std::isfinite(config.ki) ||
-        !std::isfinite(config.kd))
+    if (!std::isfinite(candidate.kp) ||
+        !std::isfinite(candidate.ki) ||
+        !std::isfinite(candidate.kd))
     {
-        lastError = PIDError::InvalidGains;
+        return PIDError::InvalidGains;
     }
 
-    // Validate the derivative filter parameter.
-    else if (!std::isfinite(config.N) ||
-             config.N < 0.0f ||
-             (config.kd != 0.0f && config.N == 0.0f))
+    if (!std::isfinite(candidate.N) ||
+        candidate.N < 0.0f ||
+        (candidate.kd != 0.0f && candidate.N == 0.0f))
     {
-        lastError = PIDError::InvalidFilterParameter;
+        return PIDError::InvalidFilterParameter;
     }
 
-    // Validate output limits.
-    else if (!std::isfinite(config.outputMin) ||
-             !std::isfinite(config.outputMax) ||
-             config.outputMin >= config.outputMax)
+    if (!std::isfinite(candidate.outputMin) ||
+        !std::isfinite(candidate.outputMax) ||
+        candidate.outputMin >= candidate.outputMax)
     {
-        lastError = PIDError::InvalidOutputLimits;
+        return PIDError::InvalidOutputLimits;
     }
 
-    // Validate integral limits.
-    else if (!std::isfinite(config.integralMin) ||
-             !std::isfinite(config.integralMax) ||
-             config.integralMin > 0.0f ||
-             config.integralMax < 0.0f ||
-             config.integralMin > config.integralMax ||
-             (config.ki != 0.0f &&
-              config.integralMin == config.integralMax))
+    if (!std::isfinite(candidate.integralMin) ||
+        !std::isfinite(candidate.integralMax) ||
+        candidate.integralMin > 0.0f ||
+        candidate.integralMax < 0.0f ||
+        candidate.integralMin > candidate.integralMax ||
+        (candidate.ki != 0.0f &&
+         candidate.integralMin == candidate.integralMax))
     {
-        lastError = PIDError::InvalidIntegralLimits;
+        return PIDError::InvalidIntegralLimits;
     }
 
-    // Configuration is valid.
-    else
-    {
-        configured = true;
-        lastError = PIDError::None;
-    }
-
-    return configured;
+    return PIDError::None;
 }
 
-float PID::compute(const float setpoint,
-                   const float measurement,
-                   float dt,
-                   const float feedforward)
+// ------------------------------------------------------------
+// Input Validation
+// ------------------------------------------------------------
+
+PIDError PID::validateInputs(float setpoint,
+                             float measurement,
+                             float dt,
+                             float feedforward)
 {
-    // Prevent calculations before successful initialization.
-    if (!configured)
-    {
-        if (lastError == PIDError::None)
-            lastError = PIDError::NotInitialized;
-
-        output = 0.0f;
-        return output;
-    }
-
-    // Validate all inputs before updating the internal state.
     if (!std::isfinite(dt) || dt <= 0.0f)
-        return fail(PIDError::InvalidSampleTime);
+        return PIDError::InvalidSampleTime;
 
     if (!std::isfinite(setpoint))
-        return fail(PIDError::InvalidSetpoint);
+        return PIDError::InvalidSetpoint;
 
     if (!std::isfinite(measurement))
-        return fail(PIDError::InvalidMeasurement);
+        return PIDError::InvalidMeasurement;
 
     if (!std::isfinite(feedforward))
-        return fail(PIDError::InvalidFeedforward);
+        return PIDError::InvalidFeedforward;
 
-    // Calculate the control error.
-    const float error = setpoint - measurement;
+    return PIDError::None;
+}
 
-    if (!std::isfinite(error))
-        return fail(PIDError::NumericalError);
+// ------------------------------------------------------------
+// Derivative Calculation
+// ------------------------------------------------------------
 
-    // Initialize the derivative term to zero.
-    float derivative = 0.0f;
+PIDError PID::calculateDerivative(float measurement,
+                                  float dt,
+                                  float& nextDerivative) const
+{
+    // Skip differentiation on the first successful sample.
+    nextDerivative = 0.0f;
 
-    // Skip differentiation on the first sample or after reset().
-    if (initialized && config.kd != 0.0f)
-    {
-        // Calculate the digital derivative filter coefficients.
-        const float denominator = 1.0f + config.N * dt;
+    if (!initialized || config.kd == 0.0f)
+        return PIDError::None;
 
-        if (!std::isfinite(denominator) || denominator <= 0.0f)
-            return fail(PIDError::NumericalError);
+    const float denominator = 1.0f + config.N * dt;
 
-        const float alpha = 1.0f / denominator;
-        const float beta = config.N / denominator;
+    if (!std::isfinite(denominator) || denominator <= 0.0f)
+        return PIDError::NumericalError;
 
-        // Apply the discrete filtered derivative equation.
-        derivative = alpha * previousDerivative +
-                     beta * (measurement - previousMeasurement);
+    const float alpha = 1.0f / denominator;
+    const float beta = config.N / denominator;
 
-        if (!std::isfinite(derivative))
-            return fail(PIDError::NumericalError);
-    }
+    // Filtered derivative of measurement, not of error.
+    nextDerivative =
+        alpha * previousDerivative +
+        beta * (measurement - previousMeasurement);
 
-    // Calculate proportional, derivative, and feedforward terms.
-    // The derivative is subtracted because it is based on measurement.
+    if (!std::isfinite(nextDerivative))
+        return PIDError::NumericalError;
+
+    return PIDError::None;
+}
+
+// ------------------------------------------------------------
+// Output and Anti-Windup Calculation
+// ------------------------------------------------------------
+
+PIDError PID::calculateControlOutput(float error,
+                                     float derivative,
+                                     float dt,
+                                     float feedforward,
+                                     float& nextIntegral,
+                                     float& nextOutput) const
+{
+    // Compute P, D and feedforward before adding the integral term.
     const float baseOutput =
         config.kp * error -
         config.kd * derivative +
         feedforward;
 
     if (!std::isfinite(baseOutput))
-        return fail(PIDError::NumericalError);
+        return PIDError::NumericalError;
 
-    // Calculate the candidate integral without updating the state.
-    const float integralCandidateRaw = integral + error * dt;
+    // Propose an integral update without saving it.
+    const float rawIntegral = integral + error * dt;
 
-    if (!std::isfinite(integralCandidateRaw))
-        return fail(PIDError::NumericalError);
+    if (!std::isfinite(rawIntegral))
+        return PIDError::NumericalError;
 
-    // Limit the candidate integral.
-    const float integralCandidate = clampValue(
-        integralCandidateRaw,
+    const float candidateIntegral = clampValue(
+        rawIntegral,
         config.integralMin,
         config.integralMax
     );
 
-    // Calculate the expected output with the candidate integral.
     const float candidateOutput =
-        baseOutput + config.ki * integralCandidate;
+        baseOutput + config.ki * candidateIntegral;
 
-    // Determine how the integral update affects the output.
     const float integralChange =
-        config.ki * (integralCandidate - integral);
+        config.ki * (candidateIntegral - integral);
 
     if (!std::isfinite(candidateOutput) ||
         !std::isfinite(integralChange))
     {
-        return fail(PIDError::NumericalError);
+        return PIDError::NumericalError;
     }
 
-    // Prevent integration from increasing output saturation.
+    // Do not integrate further into output saturation.
     const bool windupHigh =
         candidateOutput > config.outputMax &&
         integralChange > 0.0f;
@@ -173,72 +170,173 @@ float PID::compute(const float setpoint,
         candidateOutput < config.outputMin &&
         integralChange < 0.0f;
 
-    // Accept integration only if it does not increase windup.
-    if (!windupHigh && !windupLow)
-        integral = integralCandidate;
+    nextIntegral = (windupHigh || windupLow)
+        ? integral
+        : candidateIntegral;
 
-    // Calculate the final PID output.
+    // Calculate the final output.
     const float rawOutput =
-        baseOutput + config.ki * integral;
+        baseOutput + config.ki * nextIntegral;
 
     if (!std::isfinite(rawOutput))
-        return fail(PIDError::NumericalError);
+        return PIDError::NumericalError;
 
-    // Apply the configured output limits.
-    output = clampValue(
+    nextOutput = clampValue(
         rawOutput,
         config.outputMin,
         config.outputMax
     );
 
-    // Save the current measurement and derivative.
+    return PIDError::None;
+}
+
+// ------------------------------------------------------------
+// Controller Initialization
+// ------------------------------------------------------------
+
+bool PID::begin()
+{
+    configured = false;
+    reset();
+
+    lastError = validateConfig(config);
+
+    configured = (lastError == PIDError::None);
+
+    return configured;
+}
+
+// ------------------------------------------------------------
+// PID Computation
+// ------------------------------------------------------------
+
+PIDResult PID::compute(float setpoint,
+                       float measurement,
+                       float dt,
+                       float feedforward)
+{
+    if (!configured)
+    {
+        const PIDError error = (lastError == PIDError::None)
+            ? PIDError::NotInitialized
+            : lastError;
+
+        return fail(error);
+    }
+
+    // Step 1: Validate inputs.
+    const PIDError inputError = validateInputs(
+        setpoint, measurement, dt, feedforward
+    );
+
+    if (inputError != PIDError::None)
+        return fail(inputError);
+
+    // Step 2: Calculate the control error.
+    const float error = setpoint - measurement;
+
+    if (!std::isfinite(error))
+        return fail(PIDError::NumericalError);
+
+    // Step 3: Calculate the filtered derivative.
+    float nextDerivative = 0.0f;
+
+    const PIDError derivativeError = calculateDerivative(
+        measurement, dt, nextDerivative
+    );
+
+    if (derivativeError != PIDError::None)
+        return fail(derivativeError);
+
+    // Step 4: Calculate output and integral.
+    float nextIntegral = integral;
+    float nextOutput = output;
+
+    const PIDError controlError = calculateControlOutput(
+        error,
+        nextDerivative,
+        dt,
+        feedforward,
+        nextIntegral,
+        nextOutput
+    );
+
+    if (controlError != PIDError::None)
+        return fail(controlError);
+
+    // Step 5: Save the new state only after all steps succeed.
+    integral = nextIntegral;
+    output = nextOutput;
+
     previousMeasurement = measurement;
-    previousDerivative = derivative;
+    previousDerivative = nextDerivative;
 
-    // Mark the controller as initialized.
     initialized = true;
-
-    // Clear the previous runtime error.
     lastError = PIDError::None;
 
-    return output;
+    return PIDResult{
+        output,
+        true,
+        PIDError::None
+    };
 }
 
-void PID::changeParameters(const PIDConfig& newConfig)
+// ------------------------------------------------------------
+// Parameter Updates
+// ------------------------------------------------------------
+
+bool PID::changeParameters(const PIDConfig& newConfig)
 {
-    // Replace the configuration and require revalidation.
-    config = newConfig;
-    configured = false;
-    lastError = PIDError::NotInitialized;
+    const PIDError validationError = validateConfig(newConfig);
 
+    // Reject invalid parameters and preserve controller state.
+    if (validationError != PIDError::None)
+    {
+        lastError = validationError;
+        return false;
+    }
+
+    config = newConfig;
+    configured = true;
+
+    // Clear history when applying a new configuration.
     reset();
+
+    return true;
 }
+
+// ------------------------------------------------------------
+// State Reset and Error Handling
+// ------------------------------------------------------------
 
 void PID::reset()
 {
-    // Clear the internal controller history.
     previousMeasurement = 0.0f;
     integral = 0.0f;
     previousDerivative = 0.0f;
     output = 0.0f;
 
-    // Prevent differentiation on the next sample.
     initialized = false;
 
     if (configured)
         lastError = PIDError::None;
 }
 
-float PID::fail(PIDError error)
+PIDResult PID::fail(PIDError error)
 {
-    // Discard invalid controller history.
-    reset();
-
-    // Store the runtime error.
+    // Preserve the last valid output and control history.
     lastError = error;
 
-    return output;
+    return PIDResult{
+        output,
+        false,
+        error
+    };
 }
+
+// ------------------------------------------------------------
+// Error Reporting
+// ------------------------------------------------------------
 
 PIDError PID::getLastError() const
 {
