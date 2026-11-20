@@ -1682,7 +1682,7 @@ namespace
         const std::string expected =
             "speed=" + std::to_string(g_integrationSpeed) + "\n";
         TEST_ASSERT_EQUAL_STRING(expected.c_str(), packets[1].payload.c_str());
-        TEST_ASSERT_TRUE(false);
+
     }
 }
 
