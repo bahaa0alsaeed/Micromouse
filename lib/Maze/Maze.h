@@ -50,7 +50,7 @@ public:
     void markVisited(const CellPosition& pos);
 
     // Get the traversal cost of a cell.
-    [[nodiscard]] unsigned int getCost(const CellPosition& pos) const;
+   [[nodiscard]] uint8_t getCost(const CellPosition& pos) const;
 
     // Set the traversal cost of a cell.
     void setCost(const CellPosition& pos, uint8_t cost);
